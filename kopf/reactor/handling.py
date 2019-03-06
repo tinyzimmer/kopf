@@ -48,9 +48,11 @@ from kopf.structs.lastseen import (
     has_state,
     get_state_diffs,
     is_state_changed,
+    get_actual_digest,
     refresh_last_seen_state,
 )
 from kopf.structs.progress import (
+    get_stored_digest,
     is_started,
     is_sleeping,
     is_awakened,
@@ -166,6 +168,11 @@ async def custom_object_handler(
     elif etyp == 'DELETED':
         logger.debug("Deleted, really deleted, and we are notified.")
 
+    # If a new cause is started, purge the progress from the previous one (all events).
+    elif get_stored_digest(body=body) != get_actual_digest(body=body):
+        logger.debug("Initialising the progress status, purging the previous one (if any).")
+        purge_progress(body=body, patch=patch, digest=get_actual_digest(body=body))
+
     # The finalizer has been just removed. We are fully done.
     elif is_deleted(body) and not has_finalizers(body):
         logger.debug("Deletion event, but we are done with it, but we do not care.")
@@ -204,7 +211,6 @@ async def custom_object_handler(
         else:
             logger.info(f"All handlers succeeded for creation.")
             events.info(cause.body, reason='Success', message=f"All handlers succeeded for creation.")
-            purge_progress(body=body, patch=patch)
             refresh_last_seen_state(body=body, patch=patch)
 
     # The previous step triggers one more patch operation without actual change. Ignore it.
@@ -226,7 +232,6 @@ async def custom_object_handler(
         else:
             logger.info(f"All handlers succeeded for update.")
             events.info(cause.body, reason='Success', message=f"All handlers succeeded for update.")
-            purge_progress(body=body, patch=patch)
             refresh_last_seen_state(body=body, patch=patch)
 
     # Provoke a dummy change to trigger the reactor after sleep.

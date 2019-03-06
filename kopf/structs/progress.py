@@ -14,6 +14,7 @@ The structure is this::
     spec: ...
     status: ...
         kopf:
+            digest: 7f7ab91d809223e52d7e1939dfc5f411
             progress:
                 handler1:
                     started: 2018-12-31T23:59:59,999999
@@ -35,16 +36,23 @@ The structure is this::
                 handler3/sub2:
                     started: 2018-12-31T23:59:59,999999
 
+* `status.kopf.digest` is a hash of the last handled or currently being handled
+  state of the object -- to detect if a new change was introduced (read below).
 * `status.kopf.success` are the handlers that succeeded (no re-execution).
 * `status.kopf.failure` are the handlers that failed completely (no retries).
 * `status.kopf.delayed` are the timestamps, until which these handlers sleep.
 * `status.kopf.retries` are number of retries for succeeded, failed,
   and for the progressing handlers.
 
-When the full event cycle is executed (possibly including multiple re-runs),
-the whole `status.kopf` section is purged. The life-long persistence of status
-is not intended: otherwise, multiple distinct causes will clutter the status
-and collide with the each other (especially critical for multiple updates).
+After the full event cycle is executed (possibly including multiple re-runs),
+the `status.kopf` section is persisted and can be used in the resource fields
+or can be investigated manually. Only the last handling cycle is persisted.
+
+For simplicity, the digest can be considered as an "identifier" (a "version")
+of the object's state being handled, whose progress is currently stored
+in `status.kopf.progress`: if the object changes during the handling,
+a new event cycle begins, and the existing progress must be ignored
+(it belongs to the previous state of the object).
 """
 
 import datetime
@@ -147,5 +155,15 @@ def store_success(*, body, patch, handler, result=None):
         patch.setdefault('status', {}).setdefault(handler.id, {}).update(result)
 
 
-def purge_progress(*, body, patch):
+def get_stored_digest(*, body):
+    return body.setdefault('status', {}).setdefault('kopf', {}).get('digest', None)
+
+
+def set_stored_digest(*, body, patch, digest):
+    patch.setdefault('status', {}).setdefault('kopf', {})['digest'] = digest
+
+
+def purge_progress(*, body, patch, digest=None):
     patch.setdefault('status', {}).setdefault('kopf', {})['progress'] = None
+    patch.setdefault('status', {}).setdefault('kopf', {})['digest'] = digest
+

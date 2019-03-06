@@ -14,6 +14,7 @@ https://kubernetes.io/docs/concepts/overview/object-management-kubectl/declarati
 """
 
 import copy
+import hashlib
 import json
 
 from kopf.structs.diffs import diff
@@ -72,3 +73,11 @@ def retreive_state(body):
 def refresh_last_seen_state(*, body, patch):
     state = get_state(body)
     patch.setdefault('metadata', {}).setdefault('annotations', {})[LAST_SEEN_ANNOTATION] = json.dumps(state)
+
+
+def get_actual_digest(body):
+    # Any digest with a short str/int result is sufficient. Even CRC. No security is needed.
+    state = get_state(body)
+    hash = hashlib.md5()
+    hash.update(json.dumps(state).encode('utf-8'))
+    return hash.hexdigest()
