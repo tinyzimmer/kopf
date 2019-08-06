@@ -25,14 +25,32 @@ class CLIControls:
     settings: Optional[configuration.OperatorSettings] = None
 
 
+class LogFormatParamType(click.Choice):
+
+    def __init__(self) -> None:
+        super().__init__(choices=[v.name.lower() for v in config.LogFormat])
+
+    def convert(self, value: Any, param: Any, ctx: Any) -> config.LogFormat:
+        name: str = super().convert(value, param, ctx)
+        return config.LogFormat[name.upper()]
+
+
 def logging_options(fn: Callable[..., Any]) -> Callable[..., Any]:
     """ A decorator to configure logging in all command in the same way."""
     @click.option('-v', '--verbose', is_flag=True)
     @click.option('-d', '--debug', is_flag=True)
     @click.option('-q', '--quiet', is_flag=True)
+    @click.option('--log-format', type=LogFormatParamType(), default='full')
+    @click.option('--log-refkey', type=str)
+    @click.option('--log-prefix/--no-log-prefix', default=True)
     @functools.wraps(fn)  # to preserve other opts/args
-    def wrapper(verbose: bool, quiet: bool, debug: bool, *args: Any, **kwargs: Any) -> Any:
-        logging.configure(debug=debug, verbose=verbose, quiet=quiet)
+    def wrapper(verbose: bool, quiet: bool, debug: bool,
+                log_prefix: Optional[bool] = False,
+                log_refkey: Optional[str] = None,
+                log_format: logging.LogFormat = logging.LogFormat.FULL,
+                *args: Any, **kwargs: Any) -> Any:
+        logging.configure(debug=debug, verbose=verbose, quiet=quiet,
+                          log_format=log_format, log_refkey=log_refkey, log_prefix=log_prefix)
         return fn(*args, **kwargs)
 
     return wrapper

@@ -33,6 +33,83 @@ only for fine-tuning when and if necessary.
 For more settings, see `kopf.OperatorSettings` and :kwarg:`settings` kwarg.
 
 
+Configure logging
+=================
+
+The following log formats are supported on CLI:
+
+* Full logs (the default) -- with timestamps, log levels, and logger names:
+
+    .. code-block:: bash
+
+        kopf run -v --log-format=full
+
+    .. code-block:: console
+
+        [2019-11-04 17:49:25,365] kopf.reactor.activit [INFO    ] Initial authentication has been initiated.
+        [2019-11-04 17:49:25,650] kopf.objects         [DEBUG   ] [default/kopf-example-1] Resuming event: ...
+
+* Plain logs, with only the message:
+
+    .. code-block:: bash
+
+        kopf run -v --log-format=plain
+
+    .. code-block:: console
+
+        Initial authentication has been initiated.
+        [default/kopf-example-1] Resuming event: ...
+
+  For non-JSON logs, the object prefix can be disabled to make the logs
+  completely flat (as in JSON logs):
+
+    .. code-block:: bash
+
+        kopf run -v --log-format=plain --no-log-prefix
+
+    .. code-block:: console
+
+        Initial authentication has been initiated.
+        Resuming event: ...
+
+
+* JSON logs, with only the message:
+
+    .. code-block:: bash
+
+        kopf run -v --log-format=json
+
+    .. code-block:: console
+
+        {"message": "Initial authentication has been initiated.", "severity": "info"}
+        {"message": "Resuming event: ...", "object": {"apiVersion": "zalando.org/v1", "kind": "KopfExample", "name": "kopf-example-1", "uid": "...", "namespace": "default"}, "severity": "debug"}
+
+  For JSON logs, the object reference key can be configured to match
+  the log parsers (if used) -- instead of the default ``"object"``:
+
+    .. code-block:: bash
+
+        kopf run -v --log-format=json --log-refkey=k8s-obj
+
+    .. code-block:: console
+
+        {"message": "Initial authentication has been initiated.", "severity": "info"}
+        {"message": "Resuming event: ...", "k8s-obj": {...}, "severity": "debug"}
+
+In the code, the same effect can be achieved by calling `kopf.configure`:
+
+.. code-block:: python
+
+    import kopf
+
+    @kopf.on.startup()
+    def configure(**_):
+        kopf.configure(verbose=True,
+                       log_format=kopf.LogFormat.JSON,
+                       log_refkey='k8s-obj',
+                       log_prefix=False)
+
+
 Logging events
 ==============
 

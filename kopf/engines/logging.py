@@ -10,15 +10,72 @@ the operators' code, and can lead to information loss or mismatch
 """
 import asyncio
 import copy
+import enum
 import logging
 from typing import Tuple, MutableMapping, Any, Optional
+
+import pythonjsonlogger.jsonlogger
 
 from kopf.engines import posting
 from kopf.structs import bodies
 from kopf.structs import configuration
 
+DEFAULT_JSON_REFKEY = 'object'
+""" A key for object references in JSON logs, as seen by the log parsers. """
 
-class ObjectPrefixingFormatter(logging.Formatter):
+
+class LogFormat(enum.Enum):
+    """ Log formats, as specified on CLI. """
+    PLAIN = '%(message)s'
+    FULL = '[%(asctime)s] %(name)-20.20s [%(levelname)-8.8s] %(message)s'
+    JSON = enum.auto()
+
+
+class ObjectFormatter(logging.Formatter):
+    """ A base class for object formatted. """
+    pass
+
+
+class ObjectJsonFormatter(pythonjsonlogger.jsonlogger.JsonFormatter):  # type: ignore
+    """ An utility to identify the per-object JSON log messages. """
+
+    def __init__(
+            self,
+            *args: Any,
+            refkey: Optional[str] = None,
+            **kwargs: Any,
+    ) -> None:
+        # Avoid type checking, as the args are not in the parent consructor.
+        reserved_attrs = kwargs.pop('reserved_attrs', pythonjsonlogger.jsonlogger.RESERVED_ATTRS)
+        reserved_attrs = set(reserved_attrs)
+        reserved_attrs |= {'k8s_skip', 'k8s_ref'}
+        kwargs.update(reserved_attrs=reserved_attrs)
+        super().__init__(*args, **kwargs)
+        self._refkey: str = refkey or DEFAULT_JSON_REFKEY
+
+    def add_fields(
+            self,
+            log_record: MutableMapping[str, object],
+            record: logging.LogRecord,
+            message_dict: MutableMapping[str, object],
+    ) -> None:
+        super().add_fields(log_record, record, message_dict)
+
+        if self._refkey and hasattr(record, 'k8s_ref'):
+            ref = getattr(record, 'k8s_ref')
+            log_record[self._refkey] = ref
+
+        # TODO: This is Scalyr-specific, so should be --log-format=scalyr?
+        if 'severity' not in log_record:
+            log_record['severity'] = (
+                "debug" if record.levelno <= logging.DEBUG else
+                "info" if record.levelno <= logging.INFO else
+                "warn" if record.levelno <= logging.WARNING else
+                "error" if record.levelno <= logging.ERROR else
+                "fatal")
+
+
+class ObjectPrefixingFormatter(ObjectFormatter):
     """ An utility to prefix the per-object log messages. """
 
     def format(self, record: logging.LogRecord) -> str:
@@ -28,6 +85,11 @@ class ObjectPrefixingFormatter(logging.Formatter):
             record = copy.copy(record)  # shallow
             record.msg = f"{prefix} {record.msg}"
         return super().format(record)
+
+
+class ObjectPrefixingJsonFormatter(ObjectJsonFormatter, ObjectPrefixingFormatter):
+    """ An utility to prefix and identify the per-object JSON log messages. """
+    pass
 
 
 class K8sPoster(logging.Handler):
@@ -131,19 +193,38 @@ class LocalObjectLogger(ObjectLogger):
 logger = logging.getLogger('kopf.objects')
 logger.addHandler(K8sPoster())
 
-format = '[%(asctime)s] %(name)-20.20s [%(levelname)-8.8s] %(message)s'
-
 
 def configure(
         debug: Optional[bool] = None,
         verbose: Optional[bool] = None,
         quiet: Optional[bool] = None,
+        log_prefix: Optional[bool] = False,
+        log_refkey: Optional[str] = None,
+        log_format: LogFormat = LogFormat.FULL,
 ) -> None:
     log_level = 'DEBUG' if debug or verbose else 'WARNING' if quiet else 'INFO'
 
+    formatter: logging.Formatter
+    if log_format is LogFormat.JSON:
+        if log_prefix:
+            formatter = ObjectPrefixingJsonFormatter(refkey=log_refkey)
+        else:
+            formatter = ObjectJsonFormatter(refkey=log_refkey)
+    elif isinstance(log_format, LogFormat):
+        if log_prefix:
+            formatter = ObjectPrefixingFormatter(log_format.value)
+        else:
+            formatter = ObjectFormatter(log_format.value)
+    elif isinstance(log_format, str):
+        if log_prefix:
+            formatter = ObjectPrefixingFormatter(log_format)
+        else:
+            formatter = ObjectFormatter(log_format)
+    else:
+        raise ValueError(f"Unsupported log format: {log_format!r}")
+
     logger = logging.getLogger()
     handler = logging.StreamHandler()
-    formatter = ObjectPrefixingFormatter(format)
     handler.setFormatter(formatter)
     logger.addHandler(handler)
     logger.setLevel(log_level)
