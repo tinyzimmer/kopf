@@ -174,6 +174,69 @@ the detected changes. The new state usually corresponds to :kwarg:`body`.
 
 ``diff`` is a list of changes of the object between old & new states.
 
+The diff highlights which keys were added, changed, or removed
+in the dictionary, with old & new values being selectable,
+and generally ignores all other fields that were not changed.
+
+Due to specifics of Kubernetes, ``None`` is interpreted as absence
+of the value/field, not as a value of its own kind. In case of diffs,
+it means that the value did not exist before, or will not exist after
+the changes (for the old & new value positions respectively):
+
+>>> Diff(None, {'spec': {'struct': {'field': 'value'}}})
+... (('add', (), None, {'spec': {'struct': {'field': 'value'}}}),)
+
+>>> Diff({}, {'spec': {'struct': {'field': 'value'}}})
+... (('add', ('spec',), None, {'struct': {'field': 'value'}}),)
+
+Selecting from the diff by an integer index returns the diff item
+at that position, as if the diff was a tuple:
+
+>>> d = Diff({}, {'spec': {'struct': {'field': 'value'}}})
+>>> len(d)
+... 1
+>>> d[0]
+... ('add', ('spec',), None, {'struct': {'field': 'value'}})
+
+Other types of indexes are treated as a field specifier
+(e.g. a dot-separated string, a list/tuple of strings, etc),
+and return a diff reduced to that field only:
+
+>>> d[('spec')]
+... (('add', (), None, {'struct': {'field': 'value'}}),)
+
+>>> d[('spec', 'struct')]
+... (('add', (), None, {'field': 'value'}),)
+
+>>> d[('spec', 'struct', 'field')]
+... (('add', (), None, 'value'),)
+
+All forms of single or multiple selections pointing to the same field
+return the same reduced diff:
+
+>>> d['spec.struct.field']
+... (('add', (), None, 'value'),)
+
+>>> d['spec']['struct.field']
+... (('add', (), None, 'value'),)
+
+>>> d['spec']['struct']['field']
+... (('add', (), None, 'value'),)
+
+Note that the reduced diff's items are always relative to the selected
+field, or ``()`` if the whole selected field is added/changed/removed.
+
+Every diff object, however, remembers its own field path (for information):
+
+>>> d.path
+... ()
+
+>>> d['spec.struct.field'].path
+... ('spec', 'struct', 'field')
+
+>>> d['spec']['struct']['field'].path
+... ('spec', 'struct', 'field')
+
 
 Resource daemon kwargs
 ======================

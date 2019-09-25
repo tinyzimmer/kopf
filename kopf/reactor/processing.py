@@ -89,7 +89,7 @@ async def process_resource_event(
     new = settings.persistence.diffbase_storage.build(body=body, extra_fields=extra_fields)
     old = settings.persistence.progress_storage.clear(essence=old) if old is not None else None
     new = settings.persistence.progress_storage.clear(essence=new) if new is not None else None
-    diff = diffs.diff(old, new)
+    diff = diffs.Diff.build(old, new)
 
     # Detect what are we going to do on this processing cycle.
     resource_watching_cause = causation.detect_resource_watching_cause(

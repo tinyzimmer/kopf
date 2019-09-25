@@ -333,13 +333,20 @@ async def invoke_handler(
     """
 
     # For the field-handlers, the old/new/diff values must match the field, not the whole object.
+    # TODO: it also makes sense to replace raw dicts with our own mappings, readonly, field-selectable, with defaults=None(?)
+    # TODO: but the str keys in that case should raise a KeyError, not return None, right?
+    # TODO: spec['struct']['field'] -- a lot of assumptions, but a short form. THIS WILL FAIL (which type is the result?).
+    # TODO: spec = body.assume('spec', {})
+    # TODO: spec.resolve('struct.field', None)?
     if (True and  # for readable indenting
             isinstance(cause, causation.ResourceChangingCause) and
             isinstance(handler, handlers_.ResourceHandler) and
             handler.field is not None):
         old = dicts.resolve(cause.old, handler.field, None, assume_empty=True)
         new = dicts.resolve(cause.new, handler.field, None, assume_empty=True)
-        diff = diffs.reduce(cause.diff, handler.field)
+        # old = cause.old[handler.field]
+        # new = cause.new[handler.field]
+        diff = cause.diff[handler.field]
         cause = causation.enrich_cause(cause=cause, old=old, new=new, diff=diff)
 
     # Store the context of the current resource-object-event-handler, to be used in `@kopf.on.this`,
