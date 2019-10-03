@@ -119,5 +119,6 @@ def refresh_essence(
         patch: patches.Patch,
         extra_fields: Optional[Iterable[dicts.FieldSpec]] = None,
 ) -> None:
-    state = get_state(body, extra_fields=extra_fields)
-    patch.setdefault('metadata', {}).setdefault('annotations', {})[LAST_SEEN_ANNOTATION] = json.dumps(state)
+    state_obj: bodies.BodyEssence = get_state(body, extra_fields=extra_fields)
+    state_str: str = json.dumps(state_obj)
+    patch.setdefault('metadata', {}).setdefault('annotations', {})[LAST_SEEN_ANNOTATION] = state_str

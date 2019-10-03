@@ -77,7 +77,7 @@ def run(
 @click.option('-n', '--namespace', default=None)
 @click.option('-i', '--id', type=str, default=None)
 @click.option('--dev', 'priority', flag_value=666)
-@click.option('-P', '--peering', 'peering_name', type=str, required=True, envvar='KOPF_FREEZE_PEERING')
+@click.option('-P', '--peering', 'peering_name', required=True, envvar='KOPF_FREEZE_PEERING')
 @click.option('-p', '--priority', type=int, default=100, required=True)
 @click.option('-t', '--lifetime', type=int, required=True)
 @click.option('-m', '--message', type=str)
@@ -106,7 +106,7 @@ def freeze(
 @logging_options
 @click.option('-n', '--namespace', default=None)
 @click.option('-i', '--id', type=str, default=None)
-@click.option('-P', '--peering', 'peering_name', type=str, required=True, envvar='KOPF_RESUME_PEERING')
+@click.option('-P', '--peering', 'peering_name', required=True, envvar='KOPF_RESUME_PEERING')
 def resume(
         id: Optional[str],
         namespace: Optional[str],

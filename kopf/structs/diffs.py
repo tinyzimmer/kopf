@@ -111,7 +111,8 @@ def reduce(
         d: Diff,
         path: dicts.FieldPath,
 ) -> Diff:
-    return Diff(reduce_iter(d, path))
+    path = dicts.parse_field(path)
+    return d if not path else Diff(reduce_iter(d, path))
 
 
 def diff_iter(

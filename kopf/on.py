@@ -32,8 +32,8 @@ def resume(
         annotations: Optional[bodies.Annotations] = None,
 ) -> HandlerDecorator:
     """ ``@kopf.on.resume()`` handler for the object resuming on operator (re)start. """
-    actual_registry = registry if registry is not None else registries.get_default_registry()
     def decorator(fn: registries.HandlerFn) -> registries.HandlerFn:
+        actual_registry = registry if registry is not None else registries.get_default_registry()
         actual_registry.register_cause_handler(
             group=group, version=version, plural=plural,
             reason=None, initial=True, id=id, timeout=timeout,
@@ -52,8 +52,8 @@ def create(
         annotations: Optional[bodies.Annotations] = None,
 ) -> HandlerDecorator:
     """ ``@kopf.on.create()`` handler for the object creation. """
-    actual_registry = registry if registry is not None else registries.get_default_registry()
     def decorator(fn: registries.HandlerFn) -> registries.HandlerFn:
+        actual_registry = registry if registry is not None else registries.get_default_registry()
         actual_registry.register_cause_handler(
             group=group, version=version, plural=plural,
             reason=causation.Reason.CREATE, id=id, timeout=timeout,
@@ -72,8 +72,8 @@ def update(
         annotations: Optional[bodies.Annotations] = None,
 ) -> HandlerDecorator:
     """ ``@kopf.on.update()`` handler for the object update or change. """
-    actual_registry = registry if registry is not None else registries.get_default_registry()
     def decorator(fn: registries.HandlerFn) -> registries.HandlerFn:
+        actual_registry = registry if registry is not None else registries.get_default_registry()
         actual_registry.register_cause_handler(
             group=group, version=version, plural=plural,
             reason=causation.Reason.UPDATE, id=id, timeout=timeout,
@@ -93,8 +93,8 @@ def delete(
         annotations: Optional[bodies.Annotations] = None,
 ) -> HandlerDecorator:
     """ ``@kopf.on.delete()`` handler for the object deletion. """
-    actual_registry = registry if registry is not None else registries.get_default_registry()
     def decorator(fn: registries.HandlerFn) -> registries.HandlerFn:
+        actual_registry = registry if registry is not None else registries.get_default_registry()
         actual_registry.register_cause_handler(
             group=group, version=version, plural=plural,
             reason=causation.Reason.DELETE, id=id, timeout=timeout,
@@ -115,8 +115,8 @@ def field(
         annotations: Optional[bodies.Annotations] = None,
 ) -> HandlerDecorator:
     """ ``@kopf.on.field()`` handler for the individual field changes. """
-    actual_registry = registry if registry is not None else registries.get_default_registry()
     def decorator(fn: registries.HandlerFn) -> registries.HandlerFn:
+        actual_registry = registry if registry is not None else registries.get_default_registry()
         actual_registry.register_cause_handler(
             group=group, version=version, plural=plural,
             reason=None, field=field, id=id, timeout=timeout,
@@ -134,8 +134,8 @@ def event(
         annotations: Optional[bodies.Annotations] = None,
 ) -> HandlerDecorator:
     """ ``@kopf.on.event()`` handler for the silent spies on the events. """
-    actual_registry = registry if registry is not None else registries.get_default_registry()
     def decorator(fn: registries.HandlerFn) -> registries.HandlerFn:
+        actual_registry = registry if registry is not None else registries.get_default_registry()
         actual_registry.register_event_handler(
             group=group, version=version, plural=plural,
             id=id, fn=fn, labels=labels, annotations=annotations)
@@ -180,8 +180,8 @@ def this(
     Note: ``task=task`` is needed to freeze the closure variable, so that every
     create function will have its own value, not the latest in the for-cycle.
     """
-    actual_registry = registry if registry is not None else handling.subregistry_var.get()
     def decorator(fn: registries.HandlerFn) -> registries.HandlerFn:
+        actual_registry = registry if registry is not None else handling.subregistry_var.get()
         actual_registry.register(id=id, fn=fn, timeout=timeout)
         return fn
     return decorator

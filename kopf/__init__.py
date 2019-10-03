@@ -77,10 +77,11 @@ HandlerRetryError = TemporaryError  # a backward-compatibility alias
 __all__ = [
     'on', 'lifecycles', 'register', 'execute',
     'configure',
+    'LOGLEVEL_INFO', 'LOGLEVEL_WARNING', 'LOGLEVEL_ERROR', 'LOGLEVEL_CRITICAL',
     'login', 'LoginError',
     'event', 'info', 'warn', 'exception',
     'spawn_tasks', 'run_tasks', 'operator', 'run', 'create_tasks',
-    'adopt', 'label',
+    'adopt', 'label', 'harmonize_naming', 'adjust_namespace',
     'get_default_lifecycle', 'set_default_lifecycle',
     'build_object_reference', 'build_owner_reference',
     'append_owner_reference', 'remove_owner_reference',
@@ -92,4 +93,5 @@ __all__ = [
     'GlobalRegistry',
     'get_default_registry',
     'set_default_registry',
+    'WorkersConfig', 'EventsConfig',
 ]

@@ -50,7 +50,6 @@ class WatcherCallback(Protocol):
 
 
 # An end-of-stream marker sent from the watcher to the workers.
-# See: https://www.python.org/dev/peps/pep-0484/#support-for-singleton-types-in-unions
 class EOS(enum.Enum):
     token = enum.auto()
 
@@ -64,7 +63,7 @@ else:
 class Stream(NamedTuple):
     """ A single object's stream of watch-events, with some extra helpers. """
     watchevents: WatchEventQueue
-    replenished: asyncio.Event  # means: "hurry up, there are new events queued again"
+    replenished: asyncio.Event  # means: "hurry up, there are new events queued"
 
 
 ObjectUid = NewType('ObjectUid', str)
@@ -79,13 +78,14 @@ async def watcher(
         handler: WatcherCallback,
 ) -> None:
     """
-    The watchers watches for the resource events via the API, and spawns the handlers for every object.
+    Watch for the changes via the API, spawn the handlers for each object.
 
-    All resources and objects are done in parallel, but one single object is handled sequentially
-    (otherwise, concurrent handling of multiple events of the same object could cause data damage).
+    All resources and objects are done in parallel, but one single object
+    is handled sequentially (otherwise, concurrent handling of multiple events
+    of the same object could cause data damage).
 
-    The watcher is as non-blocking and async, as possible. It does neither call any external routines,
-    nor it makes the API calls via the sync libraries.
+    The watcher is as non-blocking and async, as possible. It does neither call
+    any external routines, nor it makes the API calls via the sync libraries.
 
     The watcher is generally a never-ending task (unless an error happens or it is cancelled).
     The workers, on the other hand, are limited approximately to the life-time of an object's event.
@@ -96,8 +96,8 @@ async def watcher(
     scheduler = await aiojobs.create_scheduler(limit=config.WorkersConfig.queue_workers_limit)
     streams: Streams = {}
     try:
-        # Either use the existing object's queue, or create a new one together with the per-object job.
-        # "Fire-and-forget": we do not wait for the result; the job destroys itself when it is fully done.
+        # Either use the existing object's queue, or create a new one with the object's job.
+        # "Fire-and-forget": we do not wait for the result; the job destroys itself when it is done.
         async for event in watching.infinite_watch(resource=resource, namespace=namespace):
             key = cast(ObjectRef, (resource, event['object']['metadata']['uid']))
             try:
@@ -171,14 +171,14 @@ async def worker(
             replenished.clear()
             try:
                 await handler(event=event, replenished=replenished)
-            except Exception as e:
+            except Exception:
                 # TODO: handler is a functools.partial. make the prints a bit nicer by removing it.
                 logger.exception(f"{handler} failed with an exception. Ignoring the event.")
                 # raise
 
     finally:
-        # Whether an exception or a break or a success, notify the caller, and garbage-collect our queue.
-        # The queue must not be left in the queue-cache without a corresponding job handling this queue.
+        # Whether an exception/`break`/success happens, garbage-collect our queue in the caller.
+        # The queue must not be left in the cache without a corresponding job handling the queue.
         try:
             del streams[key]
         except KeyError:

@@ -11,11 +11,13 @@ def _make_cls(
 ) -> Type[pykube.objects.APIObject]:
 
     api = auth.get_pykube_api()
-    api_resources = api.resource_list(resource.api_version)['resources']
-    resource_kind = next((r['kind'] for r in api_resources if r['name'] == resource.plural), None)
-    is_namespaced = next((r['namespaced'] for r in api_resources if r['name'] == resource.plural), None)
-    if not resource_kind:
+    all_resources = api.resource_list(resource.api_version)['resources']
+    this_resource = [r for r in all_resources if r['name'] == resource.plural]
+    if not this_resource:
         raise pykube.ObjectDoesNotExist(f"No such CRD: {resource.name}")
+
+    resource_kind = this_resource[0]['kind']
+    is_namespaced = this_resource[0]['namespaced']
 
     cls_name = resource.plural
     cls_base = pykube.objects.NamespacedAPIObject if is_namespaced else pykube.objects.APIObject

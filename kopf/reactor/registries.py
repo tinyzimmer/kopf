@@ -341,7 +341,7 @@ class GlobalRegistry(BaseRegistry):
             cause: causation.Cause,
     ) -> Iterator[Handler]:
         """
-        Iterate all handlers that match this cause/event, in the order they were registered (even if mixed).
+        Iterate all handlers that match this cause/event, in the order they were registered.
         """
         resource_registry = self._cause_handlers.get(cause.resource, None)
         if resource_registry is not None:

@@ -31,7 +31,7 @@ def login(verify: bool = False) -> None:
 
     # Pykube login is mandatory. If it fails, the framework will not run at all.
     try:
-        import pykube
+        import pykube  # noqa: F401
     except ImportError:
         raise  # mandatory
     else:
@@ -40,7 +40,7 @@ def login(verify: bool = False) -> None:
     # We keep the official client library auto-login only because it was
     # an implied behavior before switching to pykube -- to keep it so (implied).
     try:
-        import kubernetes
+        import kubernetes  # noqa: F401
     except ImportError:
         pass  # optional
     else:
@@ -68,11 +68,11 @@ def login_client(verify: bool = False) -> None:
     try:
         kubernetes.config.load_incluster_config()  # cluster env vars
         logger.debug("Client is configured in cluster with service account.")
-    except kubernetes.config.ConfigException as e1:
+    except kubernetes.config.ConfigException:
         try:
             kubernetes.config.load_kube_config()  # developer's config files
             logger.debug("Client is configured via kubeconfig file.")
-        except kubernetes.config.ConfigException as e2:
+        except kubernetes.config.ConfigException:
             raise LoginError(f"Cannot authenticate client neither in-cluster, nor via kubeconfig.")
 
     if verify:
@@ -92,7 +92,7 @@ def verify_pykube() -> None:
         rsp = api.get(version="", base="/")
         rsp.raise_for_status()
         api.raise_for_status(rsp)  # replaces requests's HTTPError with its own.
-    except requests.exceptions.ConnectionError as e:
+    except requests.exceptions.ConnectionError:
         raise AccessError("Cannot connect to the Kubernetes API. "
                           "Please configure the cluster access.")
     except pykube.exceptions.HTTPError as e:
@@ -117,7 +117,7 @@ def verify_client() -> None:
     try:
         api = kubernetes.client.CoreApi()
         api.get_api_versions()
-    except urllib3.exceptions.HTTPError as e:
+    except urllib3.exceptions.HTTPError:
         raise AccessError("Cannot connect to the Kubernetes API. "
                           "Please configure the cluster access.")
     except kubernetes.client.rest.ApiException as e:

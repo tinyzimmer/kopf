@@ -87,11 +87,18 @@ class Peer:
         self.legacy = legacy
 
     def __repr__(self) -> str:
-        return f"{self.__class__.__name__}({self.id}, namespace={self.namespace}, priority={self.priority}, lastseen={self.lastseen}, lifetime={self.lifetime})"
+        return (f"{self.__class__.__name__}({self.id}, "
+                f"namespace={self.namespace}, priority={self.priority}, "
+                f"lastseen={self.lastseen}, lifetime={self.lifetime})")
 
     @property
     def resource(self) -> resources.Resource:
-        return LEGACY_PEERING_RESOURCE if self.legacy else CLUSTER_PEERING_RESOURCE if self.namespace is None else NAMESPACED_PEERING_RESOURCE
+        if self.legacy:
+            return LEGACY_PEERING_RESOURCE
+        elif self.namespace is None:
+            return CLUSTER_PEERING_RESOURCE
+        else:
+            return NAMESPACED_PEERING_RESOURCE
 
     @classmethod
     def detect(
@@ -230,23 +237,30 @@ async def peers_handler(
     peers = [Peer(id=opid, name=name, **opinfo) for opid, opinfo in pairs]
     dead_peers = [peer for peer in peers if peer.is_dead]
     prio_peers = [peer for peer in peers if not peer.is_dead and peer.priority > ourselves.priority]
-    same_peers = [peer for peer in peers if not peer.is_dead and peer.priority == ourselves.priority and peer.id != ourselves.id]
+    same_peers = [peer for peer in peers if not peer.is_dead and peer.priority == ourselves.priority
+                  and peer.id != ourselves.id]
 
     if autoclean and dead_peers:
         # NB: sync and blocking, but this is fine.
-        await apply_peers(dead_peers, name=ourselves.name, namespace=ourselves.namespace, legacy=ourselves.legacy)
+        await apply_peers(
+            dead_peers,
+            name=ourselves.name,
+            namespace=ourselves.namespace,
+            legacy=ourselves.legacy,
+        )
 
     if prio_peers:
         if not freeze.is_set():
             logger.info(f"Freezing operations in favour of {prio_peers}.")
             freeze.set()
-    
+
     elif same_peers:
         logger.warning(f"Possibly conflicting operators with the same priority: {same_peers}.")
         logger.warning(f"Freezed all Operators: {peers}")
         freeze.set()
     elif freeze.is_set():
-        logger.info(f"Resuming operations after the freeze. Conflicting operators with the same priority are gone")
+        logger.info(f"Resuming operations after the freeze. "
+                    f"Conflicting operators with the same priority are gone.")
         freeze.clear()
 
 
@@ -259,7 +273,8 @@ async def peers_keepalive(
     """
     try:
         while True:
-            logger.debug(f"Peering keep-alive update for {ourselves.id} (priority {ourselves.priority})")
+            logger.debug(f"Peering keep-alive update for {ourselves.id} "
+                         f"(priority {ourselves.priority})")
             await ourselves.keepalive()
 
             # How often do we update. Keep limited to avoid k8s api flooding.

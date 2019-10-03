@@ -110,7 +110,8 @@ async def custom_object_handler(
 
     # Invoke all silent spies. No causation, no progress storage is performed.
     if registry.has_event_handlers(resource=resource):
-        await handle_event(registry=registry, resource=resource, event=event, logger=logger, patch=patch)
+        await handle_event(registry=registry, resource=resource, event=event,
+                           logger=logger, patch=patch)
 
     # Object patch accumulator. Populated by the methods. Applied in the end of the handler.
     # Detect the cause and handle it (or at least log this happened).
@@ -182,7 +183,8 @@ async def handle_event(
             )
 
         except Exception:
-            logger.exception(f"Handler {handler.id!r} failed with an exception. Will ignore.", local=True)
+            logger.exception(f"Handler {handler.id!r} failed with an exception. Will ignore.",
+                             local=True)
 
         else:
             logger.info(f"Handler {handler.id!r} succeeded.", local=True)
@@ -369,7 +371,7 @@ async def _execute(
     logger = cause.logger
 
     # Filter and select the handlers to be executed right now, on this event reaction cycle.
-    handlers_done = [h for h in handlers if state.is_finished(body=cause.body, handler=h)]
+    handlers_done = [h for h in handlers if state.is_finished(body=cause.body, handler=h)]  # noqa
     handlers_wait = [h for h in handlers if state.is_sleeping(body=cause.body, handler=h)]
     handlers_todo = [h for h in handlers if state.is_awakened(body=cause.body, handler=h)]
     handlers_plan = [h for h in await invocation.invoke(lifecycle, handlers_todo, cause=cause)]
@@ -431,8 +433,9 @@ async def _execute(
         # Regular errors behave as either temporary or permanent depending on the error strictness.
         except Exception as e:
             if retry_on_errors:
+                d = DEFAULT_RETRY_DELAY
                 logger.exception(f"Handler {handler.id!r} failed with an exception. Will retry.")
-                state.set_retry_time(body=cause.body, patch=cause.patch, handler=handler, delay=DEFAULT_RETRY_DELAY)
+                state.set_retry_time(body=cause.body, patch=cause.patch, handler=handler, delay=d)
                 handlers_left.append(handler)
             else:
                 logger.exception(f"Handler {handler.id!r} failed with an exception. Will stop.")
@@ -479,9 +482,9 @@ async def _call_handler(
     """
 
     # For the field-handlers, the old/new/diff values must match the field, not the whole object.
-    old = cause.old if handler.field is None else dicts.resolve(cause.old, handler.field, None, assume_empty=True)
-    new = cause.new if handler.field is None else dicts.resolve(cause.new, handler.field, None, assume_empty=True)
-    diff = cause.diff if handler.field is None else diffs.reduce(cause.diff, handler.field)
+    old = dicts.resolve(cause.old, handler.field, None, assume_empty=True)
+    new = dicts.resolve(cause.new, handler.field, None, assume_empty=True)
+    diff = diffs.reduce(cause.diff, handler.field)
     cause = causation.enrich_cause(cause=cause, old=old, new=new, diff=diff)
 
     # Store the context of the current resource-object-event-handler, to be used in `@kopf.on.this`,
