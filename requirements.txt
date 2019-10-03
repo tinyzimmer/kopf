@@ -14,3 +14,5 @@ freezegun
 codecov
 coveralls
 mypy==0.770
+flake8
+pylint

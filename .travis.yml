@@ -56,6 +56,8 @@ script:
   - codecov --flags unit
   - pytest --only-e2e  # NB: after the coverage uploads!
   - mypy kopf --strict --pretty
+  - flake8 kopf tests
+  - pylint kopf tests
 
 deploy:
   provider: pypi
