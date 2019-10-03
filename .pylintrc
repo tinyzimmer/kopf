@@ -1,0 +1,14 @@
+[MESSAGES CONTROL]
+disable=missing-docstring,
+        fixme
+
+[MISCELLANEOUS]
+notes=FIXME,
+      TODO
+
+[FORMAT]
+max-line-length=100
+max-module-lines=1000
+
+[DESIGN]
+max-args=5

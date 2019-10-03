@@ -14,3 +14,5 @@ freezegun
 codecov
 coveralls
 mypy
+flake8
+pylint
