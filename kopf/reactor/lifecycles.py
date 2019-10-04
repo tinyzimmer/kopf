@@ -63,7 +63,7 @@ def shuffled(handlers: Handlers, **kwargs: Any) -> Handlers:
 
 def asap(handlers: Handlers, *, body: bodies.Body, **kwargs: Any) -> Handlers:
     """ One handler at a time, skip on failure, try the next one, retry after the full cycle. """
-    def retryfn(handler):
+    def retryfn(handler: registries.Handler) -> int:
         return state.get_retry_count(body=body, handler=handler)
     return sorted(handlers, key=retryfn)[:1]
 

@@ -3,7 +3,7 @@ All the functions to calculate the diffs of the dicts.
 """
 import collections.abc
 import enum
-from typing import Any, Iterator, Sequence, NamedTuple, Iterable, Union, overload
+from typing import Any, Optional, Iterator, Sequence, NamedTuple, Iterable, Union, overload
 
 from kopf.structs import dicts
 
@@ -105,7 +105,7 @@ def reduce_iter(
 
 def reduce(
         __d: Diff,
-        path: dicts.FieldPath,
+        path: Optional[dicts.FieldPath],
 ) -> Diff:
     path = dicts.parse_field(path)
     return __d if not path else Diff(reduce_iter(__d, path))
