@@ -1,5 +1,19 @@
+[BASIC]
+good-names=
+    i,
+    e,
+    id,
+    fn,
+    op,
+    logger,
+
 [MESSAGES CONTROL]
 disable=missing-docstring,
+        unused-argument,
+        duplicate-code,
+        too-many-arguments,
+        too-many-instance-attributes,
+        too-many-return-statements,
         fixme
 
 [MISCELLANEOUS]
