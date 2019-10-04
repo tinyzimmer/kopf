@@ -35,12 +35,11 @@ def parse_field(
         return tuple(field.split('.'))
     elif isinstance(field, (list, tuple)):
         return tuple(field)
-    else:
-        raise ValueError(f"Field must be either a str, or a list/tuple. Got {field!r}")
+    raise ValueError(f"Field must be either a str, or a list/tuple. Got {field!r}")
 
 
 def resolve(
-        d: Optional[Mapping[Any, Any]],
+        __d: Optional[Mapping[Any, Any]],
         field: FieldSpec,
         default: Union[_T, _UNSET] = _UNSET.token,
         *,
@@ -57,7 +56,7 @@ def resolve(
     """
     path = parse_field(field)
     try:
-        result = d
+        result = __d
         for key in path:
             if result is None and assume_empty and not isinstance(default, _UNSET):
                 return default
@@ -73,14 +72,14 @@ def resolve(
 
 
 def ensure(
-        d: MutableMapping[Any, Any],
+        __d: MutableMapping[Any, Any],
         field: FieldSpec,
         value: Any,
 ) -> None:
     """
     Force-set a nested sub-field in a dict.
     """
-    result = d
+    result = __d
     path = parse_field(field)
     if not path:
         raise ValueError("Setting a root of a dict is impossible. Provide the specific fields.")
@@ -136,7 +135,7 @@ def walk(
         pass
     elif isinstance(objs, collections.abc.Mapping):
         yield objs  # type: ignore
-        for subfield in (nested if nested is not None else []):
+        for subfield in nested if nested is not None else []:
             try:
                 yield resolve(objs, parse_field(subfield))
             except KeyError:

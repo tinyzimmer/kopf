@@ -16,11 +16,13 @@ if TYPE_CHECKING:
     ResultFuture = concurrent.futures.Future[click.testing.Result]
 
     class _AbstractKopfRunner(contextlib.AbstractContextManager["_AbstractKopfRunner"]):
+        # pylint: disable=too-few-public-methods
         pass
 else:
     ResultFuture = concurrent.futures.Future
 
     class _AbstractKopfRunner(contextlib.AbstractContextManager):
+        # pylint: disable=too-few-public-methods
         pass
 
 
@@ -106,6 +108,7 @@ class KopfRunner(_AbstractKopfRunner):
             raise Exception("The operator didn't stop, still running.")
 
         # Re-raise the exceptions of the threading & invocation logic.
+        # pylint: disable=no-else-raise
         if self._future.exception() is not None:
             if exc_val is None:
                 raise self._future.exception()  # type: ignore
@@ -131,7 +134,7 @@ class KopfRunner(_AbstractKopfRunner):
         try:
             runner = click.testing.CliRunner()
             result = runner.invoke(cli.main, *self.args, **self.kwargs)
-        except BaseException as e:
+        except BaseException as e:  # pylint: disable=broad-except
             self._future.set_exception(e)
         else:
             self._future.set_result(result)

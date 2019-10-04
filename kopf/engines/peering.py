@@ -93,12 +93,9 @@ class Peer:
 
     @property
     def resource(self) -> resources.Resource:
-        if self.legacy:
-            return LEGACY_PEERING_RESOURCE
-        elif self.namespace is None:
-            return CLUSTER_PEERING_RESOURCE
-        else:
-            return NAMESPACED_PEERING_RESOURCE
+        return (LEGACY_PEERING_RESOURCE if self.legacy else
+                CLUSTER_PEERING_RESOURCE if self.namespace is None else
+                NAMESPACED_PEERING_RESOURCE)
 
     @classmethod
     def detect(
@@ -115,17 +112,16 @@ class Peer:
         if name:
             if Peer._is_peering_exist(name, namespace=namespace):
                 return cls(name=name, namespace=namespace, **kwargs)
-            elif Peer._is_peering_legacy(name, namespace=namespace):
+            if Peer._is_peering_legacy(name):
                 return cls(name=name, namespace=namespace, legacy=True, **kwargs)
-            else:
-                raise Exception(f"The peering {name!r} was not found")
+            raise Exception(f"The peering {name!r} was not found")
 
         if Peer._is_peering_exist(name=PEERING_DEFAULT_NAME, namespace=namespace):
             return cls(name=PEERING_DEFAULT_NAME, namespace=namespace, **kwargs)
-        elif Peer._is_peering_legacy(name=PEERING_DEFAULT_NAME, namespace=namespace):
+        if Peer._is_peering_legacy(name=PEERING_DEFAULT_NAME):
             return cls(name=PEERING_DEFAULT_NAME, namespace=namespace, legacy=True, **kwargs)
 
-        logger.warning(f"Default peering object not found, falling back to the standalone mode.")
+        logger.warning("Default peering object not found, falling back to the standalone mode.")
         return None
 
     def as_dict(self) -> Dict[str, Any]:
@@ -166,7 +162,7 @@ class Peer:
         return obj is not None
 
     @staticmethod
-    def _is_peering_legacy(name: str, namespace: Optional[str]) -> bool:
+    def _is_peering_legacy(name: str) -> bool:
         """
         Legacy mode for the peering: cluster-scoped KopfPeering (new mode: namespaced).
 
@@ -212,7 +208,7 @@ async def peers_handler(
         freeze: asyncio.Event,
         ourselves: Peer,
         autoclean: bool = True,
-        replenished: asyncio.Event,
+        replenished: asyncio.Event,  # pylint: disable=unused-argument
 ) -> None:
     """
     Handle a single update of the peers by us or by other operators.
@@ -251,16 +247,16 @@ async def peers_handler(
 
     if prio_peers:
         if not freeze.is_set():
-            logger.info(f"Freezing operations in favour of {prio_peers}.")
+            logger.info("Freezing operations in favour of %r.", prio_peers)
             freeze.set()
 
     elif same_peers:
-        logger.warning(f"Possibly conflicting operators with the same priority: {same_peers}.")
-        logger.warning(f"Freezed all Operators: {peers}")
+        logger.warning("Possibly conflicting operators with the same priority: %r.", same_peers)
+        logger.warning("Freezed all operators: %r", peers)
         freeze.set()
     elif freeze.is_set():
-        logger.info(f"Resuming operations after the freeze. "
-                    f"Conflicting operators with the same priority are gone.")
+        logger.info("Resuming operations after the freeze. "
+                    "Conflicting operators with the same priority are gone.")
         freeze.clear()
 
 
@@ -273,8 +269,8 @@ async def peers_keepalive(
     """
     try:
         while True:
-            logger.debug(f"Peering keep-alive update for {ourselves.id} "
-                         f"(priority {ourselves.priority})")
+            logger.debug("Peering keep-alive update for %s (priority %s)",
+                         ourselves.id, ourselves.priority)
             await ourselves.keepalive()
 
             # How often do we update. Keep limited to avoid k8s api flooding.
@@ -286,8 +282,8 @@ async def peers_keepalive(
         except asyncio.CancelledError:
             # It is the cancellation of `keepalive()`, not of the shielded `disappear()`.
             pass
-        except Exception:
-            logger.exception(f"Couldn't remove self from the peering. Ignoring.")
+        except Exception:  # pylint: disable=broad-except
+            logger.exception("Couldn't remove self from the peering. Ignoring.")
 
 
 def detect_own_id() -> str:

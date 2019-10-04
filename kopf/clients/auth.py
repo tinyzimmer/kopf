@@ -31,24 +31,24 @@ def login(verify: bool = False) -> None:
 
     # Pykube login is mandatory. If it fails, the framework will not run at all.
     try:
-        import pykube  # noqa: F401
+        import pykube as _  # noqa: F401  pylint: disable=import-outside-toplevel
     except ImportError:
-        raise  # mandatory
+        pass
     else:
         login_pykube(verify=verify)
 
     # We keep the official client library auto-login only because it was
     # an implied behavior before switching to pykube -- to keep it so (implied).
     try:
-        import kubernetes  # noqa: F401
+        import kubernetes  # noqa: F401  pylint: disable=import-outside-toplevel
     except ImportError:
-        pass  # optional
+        pass
     else:
         login_client(verify=verify)
 
 
 def login_pykube(verify: bool = False) -> None:
-    global _pykube_cfg
+    global _pykube_cfg  # pylint: disable=global-statement
     try:
         _pykube_cfg = pykube.KubeConfig.from_service_account()
         logger.debug("Pykube is configured in cluster with service account.")
@@ -64,7 +64,7 @@ def login_pykube(verify: bool = False) -> None:
 
 
 def login_client(verify: bool = False) -> None:
-    import kubernetes.client
+    import kubernetes.client  # pylint: disable=import-outside-toplevel
     try:
         kubernetes.config.load_incluster_config()  # cluster env vars
         logger.debug("Client is configured in cluster with service account.")
@@ -113,7 +113,7 @@ def verify_client() -> None:
     are configured and are reachable, the authentication token is accepted,
     and the rest are authorization or configuration errors (not a showstopper).
     """
-    import kubernetes.client.rest
+    import kubernetes.client.rest  # pylint: disable=import-outside-toplevel
     try:
         api = kubernetes.client.CoreApi()
         api.get_api_versions()

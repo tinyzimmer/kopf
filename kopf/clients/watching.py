@@ -163,7 +163,7 @@ def watch_objs(
         params['timeoutSeconds'] = timeout
 
     api = auth.get_pykube_api(timeout=None)
-    cls = classes._make_cls(resource=resource)
+    cls = classes.make_cls(resource=resource)
     namespace = namespace if issubclass(cls, pykube.objects.NamespacedAPIObject) else None
     lst = cls.objects(api, namespace=pykube.all if namespace is None else namespace)
     src = lst.watch(since=since, params=params)

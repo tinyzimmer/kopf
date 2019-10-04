@@ -270,14 +270,14 @@ async def _stop(
         pending = {task for task in tasks if not task.done()}
         are = 'are' if not pending else 'are not'
         why = 'double-cancelled at stopping' if cancelled else 'cancelled at stopping'
-        logger.debug(f"{title} tasks {are} stopped: {why}; tasks left: {pending!r}")
+        logger.debug(f"{title} tasks {are} stopped: {why}; tasks left: %r", pending)
         raise  # the repeated cancellation, handled specially.
     else:
         # If the cancellation is propagated normally and the awaited (sub-) tasks exited,
         # consider it as a successful cleanup.
         are = 'are' if not pending else 'are not'
         why = 'cancelled normally' if cancelled else 'finished normally'
-        logger.debug(f"{title} tasks {are} stopped: {why}; tasks left: {pending!r}")
+        logger.debug(f"{title} tasks {are} stopped: {why}; tasks left: %r", pending)
         return cast(Set[asyncio_Task], done), cast(Set[asyncio_Task], pending)
 
 
@@ -298,13 +298,13 @@ async def _root_task_checker(
     try:
         await coro
     except asyncio.CancelledError:
-        logger.debug(f"Root task {name!r} is cancelled.")
+        logger.debug("Root task %r is cancelled.", name)
         raise
     except Exception as e:
-        logger.error(f"Root task {name!r} is failed: %r", e)
+        logger.error("Root task %r is failed: %r", name, e)
         raise  # fail the process and its exit status
     else:
-        logger.warning(f"Root task {name!r} is finished unexpectedly.")
+        logger.warning("Root task %r is finished unexpectedly.", name)
 
 
 async def _stop_flag_checker(
@@ -325,7 +325,7 @@ async def _stop_flag_checker(
 
     # Wait until one of the stoppers is set/raised.
     try:
-        done, pending = await asyncio.wait(flags, return_when=asyncio.FIRST_COMPLETED)
+        done, _ = await asyncio.wait(flags, return_when=asyncio.FIRST_COMPLETED)
         future = done.pop()
         result = await future
     except asyncio.CancelledError:

@@ -13,4 +13,5 @@ from typing import Any, Dict
 
 # Event-handling structures, used internally in the framework and handlers only.
 class Patch(Dict[Any, Any]):
+    # pylint: disable=too-few-public-methods
     pass

@@ -48,6 +48,7 @@ the whole ``status.kopf`` section is purged. The life-long persistence of status
 is not intended: otherwise, multiple distinct causes will clutter the status
 and collide with each other (especially critical for multiple updates).
 """
+# pylint: disable=unused-argument
 
 import collections.abc
 import copy
@@ -73,9 +74,9 @@ def is_sleeping(
         body: bodies.Body,
         handler: registries.Handler,
 ) -> bool:
-    ts = get_awake_time(body=body, handler=handler)
+    awake_time = get_awake_time(body=body, handler=handler)
     finished = is_finished(body=body, handler=handler)
-    return not finished and ts is not None and ts > datetime.datetime.utcnow()
+    return not finished and awake_time is not None and awake_time > datetime.datetime.utcnow()
 
 
 def is_awakened(
@@ -151,15 +152,15 @@ def set_awake_time(
         handler: registries.Handler,
         delay: Optional[float] = None,
 ) -> None:
-    ts_str: Optional[str]
+    awake_time_str: Optional[str]
     if delay is not None:
-        ts = datetime.datetime.utcnow() + datetime.timedelta(seconds=delay)
-        ts_str = ts.isoformat()
+        awake_time = datetime.datetime.utcnow() + datetime.timedelta(seconds=delay)
+        awake_time_str = awake_time.isoformat()
     else:
-        ts_str = None
+        awake_time_str = None
     progress = patch.setdefault('status', {}).setdefault('kopf', {}).setdefault('progress', {})
     progress.setdefault(handler.id, {}).update({
-        'delayed': ts_str,
+        'delayed': awake_time_str,
     })
 
 

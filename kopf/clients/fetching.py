@@ -1,8 +1,8 @@
 import enum
+from typing import TypeVar, Optional, Union, Collection, List, Tuple, cast
 
 import pykube
 import requests
-from typing import TypeVar, Optional, Union, Collection, List, Tuple, cast
 
 from kopf.clients import auth
 from kopf.clients import classes
@@ -46,7 +46,7 @@ def read_obj(
 ) -> Union[bodies.Body, _T]:
     try:
         api = auth.get_pykube_api()
-        cls = classes._make_cls(resource=resource)
+        cls = classes.make_cls(resource=resource)
         namespace = namespace if issubclass(cls, pykube.objects.NamespacedAPIObject) else None
         obj = cls.objects(api, namespace=namespace).get_by_name(name=name)
         return cast(bodies.Body, obj.obj)
@@ -78,7 +78,7 @@ def list_objs_rv(
     * The resource is namespace-scoped AND operator is namespaced-restricted.
     """
     api = auth.get_pykube_api()
-    cls = classes._make_cls(resource=resource)
+    cls = classes.make_cls(resource=resource)
     namespace = namespace if issubclass(cls, pykube.objects.NamespacedAPIObject) else None
     lst = cls.objects(api, namespace=pykube.all if namespace is None else namespace)
     rsp = lst.response

@@ -32,14 +32,12 @@ class DiffItem(NamedTuple):
     def __eq__(self, other: object) -> bool:
         if isinstance(other, collections.abc.Sequence):
             return tuple(self) == tuple(other)
-        else:
-            return NotImplemented
+        return NotImplemented
 
     def __ne__(self, other: object) -> bool:
         if isinstance(other, collections.abc.Sequence):
             return tuple(self) != tuple(other)
-        else:
-            return NotImplemented
+        return NotImplemented
 
     @property
     def op(self) -> DiffOperation:
@@ -65,7 +63,7 @@ class Diff(Sequence[DiffItem]):
     def __getitem__(self, i: int) -> DiffItem: ...
 
     @overload
-    def __getitem__(self, s: slice) -> Sequence[DiffItem]: ...
+    def __getitem__(self, i: slice) -> Sequence[DiffItem]: ...
 
     def __getitem__(self, item: Union[int, slice]) -> Union[DiffItem, Sequence[DiffItem]]:
         return self._items[item]
@@ -73,21 +71,19 @@ class Diff(Sequence[DiffItem]):
     def __eq__(self, other: object) -> bool:
         if isinstance(other, collections.abc.Sequence):
             return tuple(self) == tuple(other)
-        else:
-            return NotImplemented
+        return NotImplemented
 
     def __ne__(self, other: object) -> bool:
         if isinstance(other, collections.abc.Sequence):
             return tuple(self) != tuple(other)
-        else:
-            return NotImplemented
+        return NotImplemented
 
 
 def reduce_iter(
-        d: Diff,
+        __d: Diff,
         path: dicts.FieldPath,
 ) -> Iterator[DiffItem]:
-    for op, field, old, new in d:
+    for op, field, old, new in __d:
 
         # As-is diff (i.e. a root field).
         if not path:
@@ -108,16 +104,16 @@ def reduce_iter(
 
 
 def reduce(
-        d: Diff,
+        __d: Diff,
         path: dicts.FieldPath,
 ) -> Diff:
     path = dicts.parse_field(path)
-    return d if not path else Diff(reduce_iter(d, path))
+    return __d if not path else Diff(reduce_iter(__d, path))
 
 
 def diff_iter(
-        a: Any,
-        b: Any,
+        __a: Any,
+        __b: Any,
         path: dicts.FieldPath = (),
 ) -> Iterator[DiffItem]:
     """
@@ -138,36 +134,36 @@ def diff_iter(
     * https://github.com/seperman/deepdiff
     * https://python-json-patch.readthedocs.io/en/latest/tutorial.html
     """
-    if a == b:  # incl. cases when both are None
+    if __a == __b:  # incl. cases when both are None
         pass
-    elif a is None:
-        yield DiffItem(DiffOperation.ADD, path, a, b)
-    elif b is None:
-        yield DiffItem(DiffOperation.REMOVE, path, a, b)
-    elif type(a) != type(b):
-        yield DiffItem(DiffOperation.CHANGE, path, a, b)
-    elif isinstance(a, collections.abc.Mapping):
-        a_keys = frozenset(a.keys())
-        b_keys = frozenset(b.keys())
+    elif __a is None:
+        yield DiffItem(DiffOperation.ADD, path, __a, __b)
+    elif __b is None:
+        yield DiffItem(DiffOperation.REMOVE, path, __a, __b)
+    elif type(__a) != type(__b):  # pylint: disable=unidiomatic-typecheck
+        yield DiffItem(DiffOperation.CHANGE, path, __a, __b)
+    elif isinstance(__a, collections.abc.Mapping):
+        a_keys = frozenset(__a.keys())
+        b_keys = frozenset(__b.keys())
         for key in b_keys - a_keys:
-            yield from diff_iter(None, b[key], path=path+(key,))
+            yield from diff_iter(None, __b[key], path=path + (key,))
         for key in a_keys - b_keys:
-            yield from diff_iter(a[key], None, path=path+(key,))
+            yield from diff_iter(__a[key], None, path=path + (key,))
         for key in a_keys & b_keys:
-            yield from diff_iter(a[key], b[key], path=path+(key,))
+            yield from diff_iter(__a[key], __b[key], path=path + (key,))
     else:
-        yield DiffItem(DiffOperation.CHANGE, path, a, b)
+        yield DiffItem(DiffOperation.CHANGE, path, __a, __b)
 
 
 def diff(
-        a: Any,
-        b: Any,
+        __a: Any,
+        __b: Any,
         path: dicts.FieldPath = (),
 ) -> Diff:
     """
     Same as `diff`, but returns the whole tuple instead of iterator.
     """
-    return Diff(diff_iter(a, b, path=path))
+    return Diff(diff_iter(__a, __b, path=path))
 
 
 EMPTY = diff(None, None)

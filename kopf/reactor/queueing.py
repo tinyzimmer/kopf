@@ -173,7 +173,7 @@ async def worker(
                 await handler(event=event, replenished=replenished)
             except Exception:
                 # TODO: handler is a functools.partial. make the prints a bit nicer by removing it.
-                logger.exception(f"{handler} failed with an exception. Ignoring the event.")
+                logger.exception(f"Unhandled exception. Ignoring the event. %t", handler)
                 # raise
 
     finally:

@@ -6,7 +6,7 @@ from kopf.clients import auth
 from kopf.structs import resources
 
 
-def _make_cls(
+def make_cls(
         resource: resources.Resource,
 ) -> Type[pykube.objects.APIObject]:
 

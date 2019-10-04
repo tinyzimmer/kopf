@@ -79,5 +79,5 @@ async def post_event(
         # Events are helpful but auxiliary, they should not fail the handling cycle.
         # Yet we want to notice that something went wrong (in logs).
         logger.warning("Failed to post an event. Ignoring and continuing. "
-                       f"Error: {e!r}. "
-                       f"Event: type={type!r}, reason={reason!r}, message={message!r}.")
+                       "Error: %r. Event: type=%r, reason=%r, message=%r.",
+                       e, type, reason, message)

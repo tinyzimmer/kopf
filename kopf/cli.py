@@ -83,7 +83,7 @@ def run(
 @click.option('-m', '--message', type=str)
 def freeze(
         id: Optional[str],
-        message: Optional[str],
+        message: Optional[str],  # pylint: disable=unused-argument
         lifetime: int,
         namespace: Optional[str],
         peering_name: str,

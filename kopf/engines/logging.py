@@ -65,7 +65,7 @@ class K8sPoster(logging.Handler):
                 type=type,
                 reason=reason,
                 message=message)
-        except Exception:
+        except Exception:  # pylint: disable=broad-except
             self.handleError(record)
 
 
@@ -107,6 +107,7 @@ class ObjectLogger(logging.LoggerAdapter):
         kwargs["extra"] = dict(self.extra, **kwargs.get('extra', {}))
         return msg, kwargs
 
+    # pylint: disable=arguments-differ
     def log(
             self,
             level: int,

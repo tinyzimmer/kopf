@@ -8,6 +8,7 @@ and return the list of handlers in the order and amount to be executed.
 The default behaviour of the framework is the most simplistic:
 execute in the order they are registered, one by one.
 """
+# pylint: disable=unused-argument
 import logging
 import random
 from typing import Sequence, Any, Optional
@@ -75,7 +76,7 @@ def get_default_lifecycle() -> LifeCycleFn:
 
 
 def set_default_lifecycle(lifecycle: Optional[LifeCycleFn]) -> None:
-    global _default_lifecycle
+    global _default_lifecycle  # pylint: disable=global-statement
     if _default_lifecycle is not None:
         logger.warning(f"The default lifecycle is already set to {_default_lifecycle}, "
                        f"overriding it to {lifecycle}.")

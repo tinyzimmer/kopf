@@ -182,7 +182,7 @@ async def handle_event(
                 logger=logger,
             )
 
-        except Exception:
+        except Exception:  # pylint: disable=broad-except
             logger.exception(f"Handler {handler.id!r} failed with an exception. Will ignore.",
                              local=True)
 
@@ -431,11 +431,11 @@ async def _execute(
             # TODO: report the handling failure somehow (beside logs/events). persistent status?
 
         # Regular errors behave as either temporary or permanent depending on the error strictness.
-        except Exception as e:
+        except Exception as e:  # pylint: disable=broad-except
             if retry_on_errors:
-                d = DEFAULT_RETRY_DELAY
                 logger.exception(f"Handler {handler.id!r} failed with an exception. Will retry.")
-                state.set_retry_time(body=cause.body, patch=cause.patch, handler=handler, delay=d)
+                state.set_retry_time(body=cause.body, patch=cause.patch, handler=handler,
+                                     delay=DEFAULT_RETRY_DELAY)
                 handlers_left.append(handler)
             else:
                 logger.exception(f"Handler {handler.id!r} failed with an exception. Will stop.")

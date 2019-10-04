@@ -5,7 +5,7 @@ from typing import Optional
 
 from kopf.engines import logging as logging_engine
 
-format = '[%(asctime)s] %(name)-20.20s [%(levelname)-8.8s] %(message)s'
+FORMAT = '[%(asctime)s] %(name)-20.20s [%(levelname)-8.8s] %(message)s'
 
 
 # Deprecated: use ``logging.*`` constants instead. Kept here for backward-compatibility.
@@ -24,19 +24,19 @@ def configure(
 
     logger = logging.getLogger()
     handler = logging.StreamHandler()
-    formatter = logging_engine.ObjectPrefixingFormatter(format)
+    formatter = logging_engine.ObjectPrefixingFormatter(FORMAT)
     handler.setFormatter(formatter)
     logger.addHandler(handler)
     logger.setLevel(log_level)
 
     # Configure the Kubernetes client defaults according to our settings.
     try:
-        import kubernetes
+        import kubernetes  # noqa: F401  pylint: disable=import-outside-toplevel
     except ImportError:
         pass
     else:
         config = kubernetes.client.configuration.Configuration()
-        config.logger_format = format
+        config.logger_format = FORMAT
         config.logger_file = None  # once again after the constructor to re-apply the formatter
         config.debug = debug
         kubernetes.client.configuration.Configuration.set_default(config)
@@ -60,6 +60,7 @@ class EventsConfig:
     """
     Used to configure events sending behaviour.
     """
+    # pylint: disable=too-few-public-methods
 
     events_loglevel: int = logging.INFO
     """ What events should be logged. """
@@ -69,6 +70,7 @@ class WorkersConfig:
     """
     Used as single point of configuration for kopf.reactor.
     """
+    # pylint: disable=too-few-public-methods
 
     threadpool_executor: Optional[concurrent.futures.ThreadPoolExecutor] = None
 
@@ -109,6 +111,7 @@ class WorkersConfig:
         if new_limit < 1:
             raise ValueError('Can`t set threadpool limit lower than 1')
 
+        # pylint: disable=protected-access
         WorkersConfig.synchronous_tasks_threadpool_limit = new_limit
         if WorkersConfig.threadpool_executor:
             WorkersConfig.threadpool_executor._max_workers = new_limit  # type: ignore
@@ -118,6 +121,7 @@ class WatchersConfig:
     """
     Used to configure the K8s API watchers and streams.
     """
+    # pylint: disable=too-few-public-methods
 
     default_stream_timeout: Optional[float] = None
     """ The maximum duration of one streaming request. Patched in some tests. """
