@@ -48,6 +48,13 @@ class Reason(str, enum.Enum):
     UPDATE = 'update'
     DELETE = 'delete'
     RESUME = 'resume'
+    RECITE
+    LISTED
+    RECALL
+    REMARK
+    NOTICE
+    BEHOLD
+    # ^^ for the RESUME replacement, when seen only for the first time
     NOOP = 'noop'
     FREE = 'free'
     GONE = 'gone'

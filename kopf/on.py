@@ -200,6 +200,36 @@ def delete(
     return decorator
 
 
+#     RECITE
+#     LISTED
+#     RECALL
+#     REMARK
+#     NOTICE
+#     BEHOLD
+def exists(
+        group: str, version: str, plural: str,
+        *,
+        id: Optional[str] = None,
+        errors: Optional[registries.ErrorsMode] = None,
+        timeout: Optional[float] = None,
+        retries: Optional[int] = None,
+        cooldown: Optional[float] = None,
+        registry: Optional[registries.OperatorRegistry] = None,
+        labels: Optional[bodies.Labels] = None,
+        annotations: Optional[bodies.Annotations] = None,
+) -> ResourceHandlerDecorator:
+    """ ``@kopf.on.delete()`` handler for the object deletion. """
+    actual_registry = registry if registry is not None else registries.get_default_registry()
+    def decorator(fn: registries.ResourceHandlerFn) -> registries.ResourceHandlerFn:
+        return actual_registry.register_resource_changing_handler(
+            group=group, version=version, plural=plural,
+            reason=causation.Reason.EXITS, id=id,
+            errors=errors, timeout=timeout, retries=retries, cooldown=cooldown,
+            fn=fn, labels=labels, annotations=annotations,
+        )
+    return decorator
+
+
 def field(
         group: str, version: str, plural: str,
         field: Union[str, List[str], Tuple[str, ...]],
