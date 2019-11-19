@@ -1,35 +1,49 @@
 import kopf
-import kubernetes.client
+import pykube
 import yaml
 
 
 @kopf.on.create('zalando.org', 'v1', 'kopfexamples')
-def create_fn(spec, **kwargs):
-
-    # Render the pod yaml with some spec fields used in the template.
+def kex_created(spec, name, **kwargs):
     doc = yaml.safe_load(f"""
-        apiVersion: v1
-        kind: Pod
+        apiVersion: batch/v1
+        kind: Job
         spec:
-          containers:
-          - name: the-only-one
-            image: busybox
-            command: ["sh", "-x", "-c"]
-            args: 
-            - |
-              echo "FIELD=$FIELD"
-              sleep {spec.get('duration', 0)}
-            env:
-            - name: FIELD
-              value: {spec.get('field', 'default-value')}
+          backoffLimit: 0
+          template:
+            spec:
+              restartPolicy: Never
+              containers:
+              - name: the-only-one
+                image: busybox
+                command: ["sh", "-x", "-c"]
+                args: 
+                - |
+                  env|sort
+                  sleep {spec.get('duration', 0)}
+                env:
+                - name: FIELD
+                  value: {spec.get('field', 'default-value')}
     """)
-
-    # Make it our child: assign the namespace, name, labels, owner references, etc.
     kopf.adopt(doc)
+    kopf.label(doc, {'parent-name': name}, nested=['spec.template'])
 
-    # Actually create an object by requesting the Kubernetes API.
-    api = kubernetes.client.CoreV1Api()
-    pod = api.create_namespaced_pod(namespace=doc['metadata']['namespace'], body=doc)
+    child = pykube.Job(api, doc)
+    child.create()
 
-    # Update the parent's status.
-    return {'children': [pod.metadata.uid]}
+
+@kopf.on.event('', 'v1', 'pods', labels={'parent-name': None})
+def event_in_a_pod(meta, status, namespace, **kwargs):
+    phase = status.get('phase')  # make a decision!
+    query = KopfExample.objects(api, namespace=namespace)
+    parent = query.get_by_name(meta['labels']['parent-name'])
+    parent.patch({'status': {'children': phase}})
+
+
+class KopfExample(pykube.objects.NamespacedAPIObject):
+    version = "zalando.org/v1"
+    endpoint = "kopfexamples"
+    kind = "KopfExample"
+
+
+api = pykube.HTTPClient(pykube.KubeConfig.from_env())
