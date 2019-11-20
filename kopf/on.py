@@ -149,6 +149,30 @@ def create(
         )
     return decorator
 
+def timer(
+        group: str, version: str, plural: str,
+        *,
+        id: Optional[str] = None,
+        errors: Optional[registries.ErrorsMode] = None,
+        timeout: Optional[float] = None,
+        retries: Optional[int] = None,
+        cooldown: Optional[float] = None,
+        registry: Optional[registries.OperatorRegistry] = None,
+        labels: Optional[bodies.Labels] = None,
+        annotations: Optional[bodies.Annotations] = None,
+        interval: int,
+) -> ResourceHandlerDecorator:
+    """ ``@kopf.on.create()`` handler for the object creation. """
+    actual_registry = registry if registry is not None else registries.get_default_registry()
+    def decorator(fn: registries.ResourceHandlerFn) -> registries.ResourceHandlerFn:
+        return actual_registry.register_resource_changing_handler(
+            group=group, version=version, plural=plural,
+            reason=causation.Reason.CREATE, id=id,
+            errors=errors, timeout=timeout, retries=retries, cooldown=cooldown,
+            fn=fn, labels=labels, annotations=annotations,
+        )
+    return decorator
+
 
 def update(
         group: str, version: str, plural: str,
