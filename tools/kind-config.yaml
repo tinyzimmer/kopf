@@ -1,0 +1,13 @@
+# See: https://kind.sigs.k8s.io/docs/user/quick-start/#configuring-your-kind-cluster
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+kubeadmConfigPatches:
+- |
+  apiVersion: kubeadm.k8s.io/v1beta2
+  kind: ClusterConfiguration
+  metadata:
+    name: config
+  apiServer:
+    extraArgs:
+      "authorization-mode": "Node,RBAC"
+      "runtime-config": "events.k8s.io/v1beta1=false"

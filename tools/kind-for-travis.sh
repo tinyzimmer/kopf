@@ -27,4 +27,7 @@ sudo mv kind /usr/local/bin/
 mkdir -p $HOME/.kube
 touch $KUBECONFIG
 
-kind create cluster -v 6 --image kindest/node:"${KUBERNETES_VERSION}"
+kind create cluster \
+    -v 6 \
+    --config tools/kind-config.yaml \
+    --image kindest/node:"${KUBERNETES_VERSION}"
