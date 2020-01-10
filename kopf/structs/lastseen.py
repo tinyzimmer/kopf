@@ -21,6 +21,7 @@ from kopf.structs import bodies
 from kopf.structs import dicts
 from kopf.structs import diffs
 from kopf.structs import patches
+from kopf.structs import finalizers
 
 LAST_SEEN_ANNOTATION = 'kopf.zalando.org/last-handled-configuration'
 """ The annotation name for the last stored state of the resource. """
@@ -98,7 +99,11 @@ def get_essential_diffs(
         extra_fields: Optional[Iterable[dicts.FieldSpec]] = None,
 ) -> Tuple[Optional[bodies.BodyEssence], Optional[bodies.BodyEssence], diffs.Diff]:
     old: Optional[bodies.BodyEssence] = retrieve_essence(body)
-    new: Optional[bodies.BodyEssence] = get_essence(body, extra_fields=extra_fields)
+    new: Optional[bodies.BodyEssence]
+    if finalizers.is_deleted(body):
+        new = None
+    else:
+        new = get_essence(body, extra_fields=extra_fields)
     return old, new, diffs.diff(old, new)
 
 

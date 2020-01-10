@@ -129,7 +129,7 @@ def test_retreive_essence_when_absent():
     assert essence is None
 
 
-def test_essence_changed_detected():
+def test_essence_change_detected():
     data = {'spec': {'depth': {'field': 'x'}}}
     encoded = json.dumps(data)  # json formatting can vary across interpreters
     body = {'metadata': {'annotations': {LAST_SEEN_ANNOTATION: encoded}}}
@@ -154,7 +154,6 @@ def test_essence_changed_ignored_with_system_fields():
                          'generation': 'x',
                          'resourceVersion': 'x',
                          'creationTimestamp': 'x',
-                         'deletionTimestamp': 'x',
                          'any-unexpected-field': 'x',
                          'uid': 'uid',
                          },
@@ -166,9 +165,7 @@ def test_essence_changed_ignored_with_system_fields():
     assert not diff
 
 
-# This is to ensure it is callable with proper signature.
-# For actual tests of diffing, see `/tests/diffs/`.
-def test_essence_diff():
+def test_essence_diff_on_updates():
     data = {'spec': {'depth': {'field': 'x'}}}
     encoded = json.dumps(data)  # json formatting can vary across interpreters
     body = {'metadata': {'annotations': {LAST_SEEN_ANNOTATION: encoded}},
@@ -178,3 +175,26 @@ def test_essence_diff():
     assert old == {'spec': {'depth': {'field': 'x'}}}
     assert new == {'spec': {'depth': {'field': 'y'}}, 'status': {'x': 'y'}}
     assert len(diff) == 2  # spec.depth.field & status.x, but the order is not known.
+
+
+def test_essence_diff_on_creation():
+    body = {'metadata': {},
+            'status': {'x': 'y'},
+            'spec': {'depth': {'field': 'y'}}}
+    old, new, diff = get_essential_diffs(body=body, extra_fields=['status.x'])
+    assert old is None
+    assert new == {'spec': {'depth': {'field': 'y'}}, 'status': {'x': 'y'}}
+    assert len(diff) == 1  # the whole object
+
+
+def test_essence_diff_on_deletion():
+    data = {'spec': {'depth': {'field': 'x'}}}
+    encoded = json.dumps(data)  # json formatting can vary across interpreters
+    body = {'metadata': {'annotations': {LAST_SEEN_ANNOTATION: encoded},
+                         'deletionTimestamp': 'x'},
+            'status': {'x': 'y'},
+            'spec': {'depth': {'field': 'y'}}}
+    old, new, diff = get_essential_diffs(body=body, extra_fields=['status.x'])
+    assert old == {'spec': {'depth': {'field': 'x'}}}
+    assert new is None
+    assert len(diff) == 1  # the whole object

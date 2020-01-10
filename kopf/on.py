@@ -118,6 +118,7 @@ def resume(
         cooldown: Optional[float] = None,  # deprecated, use `backoff`
         registry: Optional[registries.OperatorRegistry] = None,
         deleted: Optional[bool] = None,
+        field: Optional[dicts.FieldSpec] = None,
         labels: Optional[bodies.Labels] = None,
         annotations: Optional[bodies.Annotations] = None,
         when: Optional[callbacks.WhenHandlerFn] = None,
@@ -129,7 +130,8 @@ def resume(
             group=group, version=version, plural=plural,
             reason=None, initial=True, deleted=deleted, id=id,
             errors=errors, timeout=timeout, retries=retries, backoff=backoff, cooldown=cooldown,
-            fn=fn, labels=labels, annotations=annotations, when=when,
+            field=field, labels=labels, annotations=annotations, when=when,
+            fn=fn,
         )
     return decorator
 
@@ -144,6 +146,7 @@ def create(
         backoff: Optional[float] = None,
         cooldown: Optional[float] = None,  # deprecated; use backoff.
         registry: Optional[registries.OperatorRegistry] = None,
+        field: Optional[dicts.FieldSpec] = None,
         labels: Optional[bodies.Labels] = None,
         annotations: Optional[bodies.Annotations] = None,
         when: Optional[callbacks.WhenHandlerFn] = None,
@@ -155,7 +158,8 @@ def create(
             group=group, version=version, plural=plural,
             reason=causation.Reason.CREATE, id=id,
             errors=errors, timeout=timeout, retries=retries, backoff=backoff, cooldown=cooldown,
-            fn=fn, labels=labels, annotations=annotations, when=when,
+            field=field, labels=labels, annotations=annotations, when=when,
+            fn=fn,
         )
     return decorator
 
@@ -170,6 +174,7 @@ def update(
         backoff: Optional[float] = None,
         cooldown: Optional[float] = None,  # deprecated, use `backoff`
         registry: Optional[registries.OperatorRegistry] = None,
+        field: Optional[dicts.FieldSpec] = None,
         labels: Optional[bodies.Labels] = None,
         annotations: Optional[bodies.Annotations] = None,
         when: Optional[callbacks.WhenHandlerFn] = None,
@@ -181,7 +186,8 @@ def update(
             group=group, version=version, plural=plural,
             reason=causation.Reason.UPDATE, id=id,
             errors=errors, timeout=timeout, retries=retries, backoff=backoff, cooldown=cooldown,
-            fn=fn, labels=labels, annotations=annotations, when=when,
+            field=field, labels=labels, annotations=annotations, when=when,
+            fn=fn,
         )
     return decorator
 
@@ -197,6 +203,7 @@ def delete(
         cooldown: Optional[float] = None,  # deprecated, use `backoff`
         registry: Optional[registries.OperatorRegistry] = None,
         optional: Optional[bool] = None,
+        field: Optional[dicts.FieldSpec] = None,
         labels: Optional[bodies.Labels] = None,
         annotations: Optional[bodies.Annotations] = None,
         when: Optional[callbacks.WhenHandlerFn] = None,
@@ -209,7 +216,7 @@ def delete(
             reason=causation.Reason.DELETE, id=id,
             errors=errors, timeout=timeout, retries=retries, backoff=backoff, cooldown=cooldown,
             fn=fn, requires_finalizer=bool(not optional),
-            labels=labels, annotations=annotations, when=when,
+            field=field, labels=labels, annotations=annotations, when=when,
         )
     return decorator
 
@@ -234,9 +241,10 @@ def field(
     def decorator(fn: callbacks.ResourceHandlerFn) -> callbacks.ResourceHandlerFn:
         return actual_registry.register_resource_changing_handler(
             group=group, version=version, plural=plural,
-            reason=None, field=field, id=id,
+            reason=None, id=id,
             errors=errors, timeout=timeout, retries=retries, backoff=backoff, cooldown=cooldown,
-            fn=fn, labels=labels, annotations=annotations, when=when,
+            field=field, labels=labels, annotations=annotations, when=when,
+            fn=fn,
         )
     return decorator
 

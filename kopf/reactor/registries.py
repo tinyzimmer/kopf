@@ -18,7 +18,7 @@ import enum
 import functools
 import warnings
 from types import FunctionType, MethodType
-from typing import (Any, MutableMapping, Optional, Sequence, Collection, Iterable, Iterator,
+from typing import (Any, MutableMapping, Optional, Sequence, Iterable, Iterator,
                     List, Set, FrozenSet, Mapping, NewType, Callable, cast, Generic, TypeVar)
 
 from kopf.reactor import callbacks
@@ -26,6 +26,7 @@ from kopf.reactor import causation
 from kopf.reactor import invocation
 from kopf.structs import bodies
 from kopf.structs import dicts
+from kopf.structs import diffs
 from kopf.structs import resources as resources_
 from kopf.utilities import piggybacking
 
@@ -250,7 +251,7 @@ class ResourceWatchingRegistry(ResourceRegistry[causation.ResourceWatchingCause]
             cause: causation.ResourceWatchingCause,
     ) -> Iterator[ResourceHandler]:
         for handler in self._handlers:
-            if match(handler=handler, cause=cause, ignore_fields=True):
+            if match(handler=handler, cause=cause):
                 yield handler
 
 
@@ -260,14 +261,13 @@ class ResourceChangingRegistry(ResourceRegistry[causation.ResourceChangingCause]
             self,
             cause: causation.ResourceChangingCause,
     ) -> Iterator[ResourceHandler]:
-        changed_fields = frozenset(field for _, field, _, _ in cause.diff or [])
         for handler in self._handlers:
             if handler.reason is None or handler.reason == cause.reason:
                 if handler.initial and not cause.initial:
                     pass  # ignore initial handlers in non-initial causes.
                 elif handler.initial and cause.deleted and not handler.deleted:
                     pass  # ignore initial handlers on deletion, unless explicitly marked as usable.
-                elif match(handler=handler, cause=cause, changed_fields=changed_fields):
+                elif match(handler=handler, cause=cause):
                     yield handler
 
 
@@ -555,43 +555,41 @@ def _deduplicated(
 def match(
         handler: ResourceHandler,
         cause: causation.ResourceCause,
-        changed_fields: Collection[dicts.FieldPath] = frozenset(),
-        ignore_fields: bool = False,
 ) -> bool:
     return all([
-        _matches_field(handler, changed_fields or {}, ignore_fields),
-        _matches_labels(handler, cause.body),
-        _matches_annotations(handler, cause.body),
+        _matches_field(handler, cause),
+        _matches_labels(handler, cause),
+        _matches_annotations(handler, cause),
         _matches_filter_callback(handler, cause),
     ])
 
 
 def _matches_field(
         handler: ResourceHandler,
-        changed_fields: Collection[dicts.FieldPath] = frozenset(),
-        ignore_fields: bool = False,
+        cause: causation.ResourceCause,
 ) -> bool:
-    return (ignore_fields or
+    return (not isinstance(cause, causation.ResourceChangingCause) or
+            cause.diff is None or
             not handler.field or
-            any(field[:len(handler.field)] == handler.field for field in changed_fields))
+            diffs.contains(cause.diff, handler.field))
 
 
 def _matches_labels(
         handler: ResourceHandler,
-        body: bodies.Body,
+        cause: causation.ResourceCause,
 ) -> bool:
     return (not handler.labels or
             _matches_metadata(pattern=handler.labels,
-                              content=body.get('metadata', {}).get('labels', {})))
+                              content=cause.body.get('metadata', {}).get('labels', {})))
 
 
 def _matches_annotations(
         handler: ResourceHandler,
-        body: bodies.Body,
+        cause: causation.ResourceCause,
 ) -> bool:
     return (not handler.annotations or
             _matches_metadata(pattern=handler.annotations,
-                              content=body.get('metadata', {}).get('annotations', {})))
+                              content=cause.body.get('metadata', {}).get('annotations', {})))
 
 
 def _matches_metadata(

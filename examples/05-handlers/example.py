@@ -39,3 +39,18 @@ def delete_fn_2(**kwargs):
 @kopf.on.field('zalando.org', 'v1', 'kopfexamples', field='spec.field')
 def field_fn(old, new, **kwargs):
     print(f'FIELD CHANGED: {old} -> {new}')
+
+
+@kopf.on.create('zalando.org', 'v1', 'kopfexamples', field='spec.field')
+def created_with_field(new, **kwargs):
+    print(f'CREATED with field: {new}')
+
+
+@kopf.on.update('zalando.org', 'v1', 'kopfexamples', field='spec.field')
+def updated_with_field(old, new, **kwargs):
+    print(f'UPDATED with field: {old} -> {new}')
+
+
+@kopf.on.delete('zalando.org', 'v1', 'kopfexamples', field='spec.field')
+def deleted_with_field(old, **kwargs):
+    print(f'DELETED with field: {old}')

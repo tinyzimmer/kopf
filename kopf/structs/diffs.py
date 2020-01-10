@@ -83,6 +83,41 @@ class Diff(Sequence[DiffItem]):
             return NotImplemented
 
 
+def contains(
+        d: Diff,
+        path: dicts.FieldPath,
+) -> bool:
+    """
+    Check if the field is contained in the diff.
+
+    This is a fast and memory-savvy equivalent of reduction (see `reduce`).
+    """
+    for op, field, old, new in d:
+
+        # As-is diff (i.e. a root field).
+        if not path:
+            return True
+
+        # The diff-field is longer than the path:
+        # e.g. checking for "spec.struct" when "spec.struct.field" is in the diff.
+        elif tuple(field[:len(path)]) == tuple(path):
+            return True
+
+        # The diff-field is shorter than the path:
+        # e.g. checking for "spec.struct" when "spec={...}" is in the diff.
+        # TODO: optimize to avoid resolving/sub_diffing (it wastes memory and CPU)
+        elif tuple(field) == tuple(path[:len(field)]):
+            tail = path[len(field):]
+            old_tail = dicts.resolve(old, tail, default=None, assume_empty=True)
+            new_tail = dicts.resolve(new, tail, default=None, assume_empty=True)
+            sub_diff = diff(old_tail, new_tail)
+            if sub_diff:
+                return True
+
+    # In all other cases when nothing matches, the field is absent.
+    return False
+
+
 def reduce_iter(
         d: Diff,
         path: dicts.FieldPath,
