@@ -28,34 +28,6 @@ def register_fn(registry, resource):
     raise Exception(f"Unsupported registry type: {registry}")
 
 
-@pytest.fixture(params=[
-    pytest.param(None, id='without-diff'),
-    pytest.param([], id='with-empty-diff'),
-])
-def cause_no_diff(request, resource):
-    body = {'metadata': {'labels': {'somelabel': 'somevalue'}, 'annotations': {'someannotation': 'somevalue'}}}
-    return Mock(resource=resource, reason='some-reason', diff=request.param, body=body)
-
-
-@pytest.fixture(params=[
-    pytest.param([('op', ('some-field',), 'old', 'new')], id='with-field-diff'),
-])
-def cause_with_diff(resource):
-    body = {'metadata': {'labels': {'somelabel': 'somevalue'}, 'annotations': {'someannotation': 'somevalue'}}}
-    diff = [('op', ('some-field',), 'old', 'new')]
-    return Mock(resource=resource, reason='some-reason', diff=diff, body=body)
-
-
-@pytest.fixture(params=[
-    pytest.param(None, id='without-diff'),
-    pytest.param([], id='with-empty-diff'),
-    pytest.param([('op', ('some-field',), 'old', 'new')], id='with-field-diff'),
-])
-def cause_any_diff(resource, request):
-    body = {'metadata': {'labels': {'somelabel': 'somevalue'}, 'annotations': {'someannotation': 'somevalue'}}}
-    return Mock(resource=resource, reason='some-reason', diff=request.param, body=body)
-
-
 #
 # "Catch-all" handlers are those with event == None.
 #
