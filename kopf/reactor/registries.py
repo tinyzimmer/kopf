@@ -552,6 +552,28 @@ def _deduplicated(
             yield handler
 
 
+# FIXME: the whole solution is wrong here.
+#  Example: on.resume(field=...) will never be called,
+#           as the field is never is in the diff,
+#           as the diff is always empty for resuming.
+#  Expected behaviour is NOT to FILTER, but to NARROW the old/new/diff to that field.
+#  Or is it?
+#   => This can be done without us by a spec.get(...) chain.
+#   => It mistamches with @on.field(field=), where it FILTERS+NARROWS by that field,
+#      and ignores if the field is not affected.
+#       => FILTERing is a must, if this feature is at all provided.
+#          Also, all those kwargs are usually for filtering (when=, labels=, annotations=, conditions=...).
+#          Such `field=` would affect the behaviour (values of some kwargs) instead of either filtering
+#          or describing/modifying the behaviour outside of the function (timeouts, retries, etc).
+#
+# TODO: field= should be accompanied by value=, old=, new=.
+#       In that case, it feels like a new filter, and can narrow the old/new/diff kwargs to that field.
+#           field= -- the handler is called ONLY when that field is there (or was there). ignored if absent.
+#           old=UNSET -- from which value it is changed. if unset, anything that is not "new" (i.e. changed at all). `None` means addition of the field.
+#           new=UNSET -- to which value it is changed. if unset, anything that is not "old" (i.e. changed at all). `None` means deletion of the field.
+#           value=ANY -- a filter with no requirement to change it, i.e. when value is this only. `None` means when the field is absent.
+#                        value=X implies that new=X too, but does not check for the change (it can stay X for some time).
+#
 def match(
         handler: ResourceHandler,
         cause: causation.ResourceCause,
