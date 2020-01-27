@@ -219,7 +219,9 @@ async def watch_objs(
 
     # Stream the parsed events from the response until it is closed server-side,
     # or until it is closed client-side by the freeze-waiting future's callbacks.
-    response_close_callback = lambda _: response.close()
+    def response_close_callback(_):
+        response.close()
+
     freeze_waiter.add_done_callback(response_close_callback)
     try:
         async with response:

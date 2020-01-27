@@ -26,10 +26,10 @@ def strict_kwargs(request):
 def relaxed_kwargs(request):
     return request.param
 
+
 #
 # No matter what `strict` mode is, the pre-existing names are preserved.
 #
-
 def test_preserved_name_of_dict(all_modes_kwargs):
     obj = {'metadata': {'name': 'preexisting-name'}}
 
@@ -55,10 +55,10 @@ def test_preserved_names_of_multiple_objects(all_modes_kwargs, multicls):
     assert 'generateName' not in obj2['metadata']
     assert obj2['metadata']['name'] == 'preexisting-name-2'
 
+
 #
 # In strict mode and with the absent names, the provided name is used.
 #
-
 def test_assigned_name_of_dict(strict_kwargs):
     obj = {}
 
@@ -84,10 +84,10 @@ def test_assigned_names_of_multiple_objects(strict_kwargs, multicls):
     assert 'generateName' not in obj2['metadata']
     assert obj2['metadata']['name'] == 'preexisting-name-2'
 
+
 #
 # In relaxed mode, if the names are absent, they are auto-generated.
 #
-
 def test_prefixed_name_of_dict(relaxed_kwargs):
     obj = {}
 

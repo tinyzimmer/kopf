@@ -88,11 +88,18 @@ class Peer:
         self.legacy = legacy
 
     def __repr__(self) -> str:
-        return f"{self.__class__.__name__}({self.id}, namespace={self.namespace}, priority={self.priority}, lastseen={self.lastseen}, lifetime={self.lifetime})"
+        return (f"{self.__class__.__name__}({self.id}, "
+                f"namespace={self.namespace}, priority={self.priority}, "
+                f"lastseen={self.lastseen}, lifetime={self.lifetime})")
 
     @property
     def resource(self) -> resources.Resource:
-        return LEGACY_PEERING_RESOURCE if self.legacy else CLUSTER_PEERING_RESOURCE if self.namespace is None else NAMESPACED_PEERING_RESOURCE
+        if self.legacy:
+            return LEGACY_PEERING_RESOURCE
+        elif self.namespace is None:
+            return CLUSTER_PEERING_RESOURCE
+        else:
+            return NAMESPACED_PEERING_RESOURCE
 
     @classmethod
     async def detect(
@@ -156,7 +163,12 @@ class Peer:
     @staticmethod
     async def _is_peering_exist(name: str, namespace: Optional[str]) -> bool:
         resource = CLUSTER_PEERING_RESOURCE if namespace is None else NAMESPACED_PEERING_RESOURCE
-        obj = await fetching.read_obj(resource=resource, namespace=namespace, name=name, default=None)
+        obj = await fetching.read_obj(
+            resource=resource,
+            namespace=namespace,
+            name=name,
+            default=None,
+        )
         return obj is not None
 
     @staticmethod
@@ -169,14 +181,21 @@ class Peer:
             This logic will be removed since 1.0.
             Deploy ``ClusterKopfPeering`` as per documentation, and use it normally.
         """
-        crd = await fetching.read_crd(resource=LEGACY_PEERING_RESOURCE, default=None)
+        crd = await fetching.read_crd(
+            resource=LEGACY_PEERING_RESOURCE,
+            default=None,
+        )
         if crd is None:
             return False
 
         if str(crd.get('spec', {}).get('scope', '')).lower() != 'cluster':
             return False  # no legacy mode detected
 
-        obj = await fetching.read_obj(resource=LEGACY_PEERING_RESOURCE, name=name, default=None)
+        obj = await fetching.read_obj(
+            resource=LEGACY_PEERING_RESOURCE,
+            name=name,
+            default=None,
+        )
         return obj is not None
 
 
@@ -231,24 +250,31 @@ async def process_peering_event(
     peers = [Peer(id=opid, name=name, **opinfo) for opid, opinfo in pairs.items()]
     dead_peers = [peer for peer in peers if peer.is_dead]
     prio_peers = [peer for peer in peers if not peer.is_dead and peer.priority > ourselves.priority]
-    same_peers = [peer for peer in peers if not peer.is_dead and peer.priority == ourselves.priority and peer.id != ourselves.id]
+    same_peers = [peer for peer in peers if not peer.is_dead and peer.priority == ourselves.priority
+                  and peer.id != ourselves.id]
 
     if autoclean and dead_peers:
         # NB: sync and blocking, but this is fine.
-        await apply_peers(dead_peers, name=ourselves.name, namespace=ourselves.namespace, legacy=ourselves.legacy)
+        await apply_peers(
+            dead_peers,
+            name=ourselves.name,
+            namespace=ourselves.namespace,
+            legacy=ourselves.legacy,
+        )
 
     if prio_peers:
         if freeze_mode.is_off():
             logger.info(f"Freezing operations in favour of {prio_peers}.")
             await freeze_mode.turn_on()
-    
+
     elif same_peers:
         logger.warning(f"Possibly conflicting operators with the same priority: {same_peers}.")
         logger.warning(f"Freezing all operators, including self: {peers}")
         await freeze_mode.turn_on()
 
     elif freeze_mode.is_on():
-        logger.info(f"Resuming operations after the freeze. Conflicting operators with the same priority are gone.")
+        logger.info(f"Resuming operations after the freeze. "
+                    "Conflicting operators with the same priority are gone.")
         await freeze_mode.turn_off()
 
 
@@ -261,7 +287,8 @@ async def peers_keepalive(
     """
     try:
         while True:
-            logger.debug(f"Peering keep-alive update for {ourselves.id} (priority {ourselves.priority})")
+            logger.debug(f"Peering keep-alive update for {ourselves.id} "
+                         f"(priority {ourselves.priority}).")
             await ourselves.keepalive()
 
             # How often do we update. Keep limited to avoid k8s api flooding.

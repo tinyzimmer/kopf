@@ -163,11 +163,12 @@ HandlerRetryError = TemporaryError  # a backward-compatibility alias
 __all__ = [
     'on', 'lifecycles', 'register', 'execute', 'daemon', 'timer',
     'configure',
+    'LOGLEVEL_INFO', 'LOGLEVEL_WARNING', 'LOGLEVEL_ERROR', 'LOGLEVEL_CRITICAL',
     'login', 'LoginError', 'ConnectionInfo',
     'login_via_pykube', 'login_via_client',
     'event', 'info', 'warn', 'exception',
     'spawn_tasks', 'run_tasks', 'operator', 'run', 'create_tasks',
-    'adopt', 'label',
+    'adopt', 'label', 'harmonize_naming', 'adjust_namespace',
     'not_',
     'all_',
     'any_',
@@ -227,4 +228,5 @@ __all__ = [
     'SyncDaemonStopperChecker',
     'AsyncDaemonStopperChecker',
     'Resource',
+    'WorkersConfig', 'EventsConfig',
 ]

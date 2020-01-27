@@ -470,7 +470,7 @@ class OperatorRegistry:
             cause: causation.ResourceChangingCause,
     ) -> Iterator[handlers.ResourceChangingHandler]:
         """
-        Iterate all handlers that match this cause/event, in the order they were registered (even if mixed).
+        Iterate all handlers that match this cause/event, in the order they were registered.
         """
         warnings.warn("registry.iter_resource_changing_handlers() is deprecated; "
                       "use registry.resource_changing_handlers[resource].iter_handlers().",
@@ -515,7 +515,7 @@ class SmartOperatorRegistry(OperatorRegistry):
         super().__init__()
 
         try:
-            import pykube
+            import pykube  # noqa
         except ImportError:
             pass
         else:
@@ -528,7 +528,7 @@ class SmartOperatorRegistry(OperatorRegistry):
                 _fallback=True,
             ))
         try:
-            import kubernetes
+            import kubernetes  # noqa
         except ImportError:
             pass
         else:

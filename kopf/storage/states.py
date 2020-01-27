@@ -100,10 +100,11 @@ class HandlerState:
     ) -> "HandlerState":
         now = datetime.datetime.utcnow()
         cls = type(self)
+        delay = outcome.delay
         return cls(
             started=self.started if self.started else now,
             stopped=self.stopped if self.stopped else now if outcome.final else None,
-            delayed=now + datetime.timedelta(seconds=outcome.delay) if outcome.delay is not None else None,
+            delayed=now + datetime.timedelta(seconds=delay) if delay is not None else None,
             success=bool(outcome.final and outcome.exception is None),
             failure=bool(outcome.final and outcome.exception is not None),
             retries=(self.retries if self.retries is not None else 0) + 1,

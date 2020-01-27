@@ -40,27 +40,27 @@ class LifeCycleFn(Protocol):
 
 
 def all_at_once(handlers: Handlers, **kwargs: Any) -> Handlers:
-    """ Execute all handlers at once, in one event reaction cycle, if possible. """
+    """ All handlers at once, in one event reaction cycle. """
     return handlers
 
 
 def one_by_one(handlers: Handlers, **kwargs: Any) -> Handlers:
-    """ Execute handlers one at a time, in the order they were registered. """
+    """ One handler at a time, in the order they were registered. """
     return handlers[:1]
 
 
 def randomized(handlers: Handlers, **kwargs: Any) -> Handlers:
-    """ Execute one handler at a time, in the random order. """
+    """ One handler at a time, in random order. """
     return [random.choice(handlers)] if handlers else []
 
 
 def shuffled(handlers: Handlers, **kwargs: Any) -> Handlers:
-    """ Execute all handlers at once, but in the random order. """
+    """ All handlers at once, but in random order. """
     return random.sample(handlers, k=len(handlers)) if handlers else []
 
 
 def asap(handlers: Handlers, *, state: states.State, **kwargs: Any) -> Handlers:
-    """ Execute one handler at a time, skip on failure, try the next one, retry after the full cycle. """
+    """ One handler at a time, skip on failure, try the next one, retry after the full cycle. """
 
     def keyfn(handler: handlers_.BaseHandler) -> int:
         return state[handler.id].retries or 0
@@ -78,5 +78,6 @@ def get_default_lifecycle() -> LifeCycleFn:
 def set_default_lifecycle(lifecycle: Optional[LifeCycleFn]) -> None:
     global _default_lifecycle
     if _default_lifecycle is not None:
-        logger.warning(f"The default lifecycle is already set to {_default_lifecycle}, overriding it to {lifecycle}.")
+        logger.warning(f"The default lifecycle is already set to {_default_lifecycle}, "
+                       f"overriding it to {lifecycle}.")
     _default_lifecycle = lifecycle if lifecycle is not None else asap

@@ -24,11 +24,17 @@ class WorkersConfig:
     Used as single point of configuration for kopf.reactor.
     """
 
-    queue_workers_limit: Optional[int] = None  # if None, there is no limits to workers number
-    """ How many workers can be running simultaneously on per-object event queue. """
+    queue_workers_limit: Optional[int] = None
+    """
+    How many workers can be running simultaneously on per-object event queue.
+    If set to ``None``, there is no limit for workers.
+    """
 
-    synchronous_tasks_threadpool_limit: Optional[int] = None  # if None, calculated by ThreadPoolExecutor based on cpu count
-    """ How many threads in total can be running simultaneously to handle any non-async tasks."""
+    synchronous_tasks_threadpool_limit: Optional[int] = None
+    """
+    How many threads in total can be running simultaneously to handle any non-async tasks.
+    If set to ``None``, it is calculated by `ThreadPoolExecutor` based on CPU count.
+    """
 
     worker_idle_timeout: float = 5.0
     """ How long does a worker can idle before exiting and garbage-collecting."""
