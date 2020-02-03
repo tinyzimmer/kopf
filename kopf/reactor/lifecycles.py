@@ -78,5 +78,6 @@ def get_default_lifecycle() -> LifeCycleFn:
 def set_default_lifecycle(lifecycle: Optional[LifeCycleFn]) -> None:
     global _default_lifecycle
     if _default_lifecycle is not None:
-        logger.warning(f"The default lifecycle is already set to {_default_lifecycle}, overriding it to {lifecycle}.")
+        logger.warning("The default lifecycle is already set to %r, overriding it to %r.",
+                       _default_lifecycle, lifecycle)
     _default_lifecycle = lifecycle if lifecycle is not None else asap

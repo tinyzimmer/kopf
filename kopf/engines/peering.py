@@ -239,16 +239,17 @@ async def process_peering_event(
 
     if prio_peers:
         if freeze_mode.is_off():
-            logger.info(f"Freezing operations in favour of {prio_peers}.")
+            logger.info("Freezing operations in favour of %s", prio_peers)
             await freeze_mode.turn_on()
     
     elif same_peers:
-        logger.warning(f"Possibly conflicting operators with the same priority: {same_peers}.")
-        logger.warning(f"Freezing all operators, including self: {peers}")
+        logger.warning("Possibly conflicting operators with the same priority: %s.", same_peers)
+        logger.warning("Freezing all operators, including self: %s", peers)
         await freeze_mode.turn_on()
 
     elif freeze_mode.is_on():
-        logger.info(f"Resuming operations after the freeze. Conflicting operators with the same priority are gone.")
+        logger.info("Resuming operations after the freeze. "
+                    "Conflicting operators with the same priority are gone.")
         await freeze_mode.turn_off()
 
 
@@ -261,7 +262,7 @@ async def peers_keepalive(
     """
     try:
         while True:
-            logger.debug(f"Peering keep-alive update for {ourselves.id} (priority {ourselves.priority})")
+            logger.debug("Peering keep-alive update for %s (priority %s)", ourselves.id, ourselves.priority)
             await ourselves.keepalive()
 
             # How often do we update. Keep limited to avoid k8s api flooding.
@@ -274,7 +275,7 @@ async def peers_keepalive(
             # It is the cancellation of `keepalive()`, not of the shielded `disappear()`.
             pass
         except Exception:
-            logger.exception(f"Couldn't remove self from the peering. Ignoring.")
+            logger.exception("Could not remove self from the peering. Ignoring.")
 
 
 def detect_own_id() -> str:

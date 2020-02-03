@@ -185,7 +185,7 @@ async def stop_resource_daemons(
         elif backoff is not None and age < backoff:
             if not stopper.is_set(reason=primitives.DaemonStoppingReason.DAEMON_SIGNALLED):
                 stopper.set(reason=primitives.DaemonStoppingReason.DAEMON_SIGNALLED)
-                logger.debug(f"{handler} is signalled to exit gracefully.")
+                logger.debug("%s is signalled to exit gracefully.", handler)
                 await _wait_for_instant_exit(settings=settings, daemon=daemon)
             if not daemon.task.done():  # due to "instant exit"
                 delays.append(backoff - age)
@@ -193,7 +193,7 @@ async def stop_resource_daemons(
         elif timeout is not None and age < timeout + (backoff or 0):
             if not stopper.is_set(reason=primitives.DaemonStoppingReason.DAEMON_CANCELLED):
                 stopper.set(reason=primitives.DaemonStoppingReason.DAEMON_CANCELLED)
-                logger.debug(f"{handler} is signalled to exit by force.")
+                logger.debug("%s is signalled to exit by force.", handler)
                 daemon.task.cancel()
                 await _wait_for_instant_exit(settings=settings, daemon=daemon)
             if not daemon.task.done():  # due to "instant exit"
@@ -202,11 +202,11 @@ async def stop_resource_daemons(
         elif timeout is not None:
             if not stopper.is_set(reason=primitives.DaemonStoppingReason.DAEMON_ABANDONED):
                 stopper.set(reason=primitives.DaemonStoppingReason.DAEMON_ABANDONED)
-                logger.warning(f"{handler} did not exit in time. Leaving it orphaned.")
+                logger.warning("%s did not exit in time. Leaving it orphaned.", handler)
                 warnings.warn(f"{handler} did not exit in time.", ResourceWarning)
 
         else:
-            logger.debug(f"{handler} is still exiting. The next check is in {polling} seconds.")
+            logger.debug("%s is still exiting. The next check is in %s seconds.", handler, polling)
             delays.append(polling)
 
     return delays
@@ -266,23 +266,23 @@ async def stop_daemon(
     await _wait_for_instant_exit(settings=settings, daemon=daemon)
 
     if daemon.task.done():
-        daemon.logger.debug(f"{handler} has exited gracefully.")
+        daemon.logger.debug("%s has exited gracefully.", handler)
 
     # Try different approaches to exiting the daemon based on timings.
     if not daemon.task.done() and backoff is not None:
         daemon.stopper.set(reason=primitives.DaemonStoppingReason.DAEMON_SIGNALLED)
-        daemon.logger.debug(f"{handler} is signalled to exit gracefully.")
+        daemon.logger.debug("%s is signalled to exit gracefully.", handler)
         await asyncio.wait([daemon.task], timeout=backoff)
 
     if not daemon.task.done() and timeout is not None:
         daemon.stopper.set(reason=primitives.DaemonStoppingReason.DAEMON_CANCELLED)
-        daemon.logger.debug(f"{handler} is signalled to exit by force.")
+        daemon.logger.debug("%s is signalled to exit by force.", handler)
         daemon.task.cancel()
         await asyncio.wait([daemon.task], timeout=timeout)
 
     if not daemon.task.done():
         daemon.stopper.set(reason=primitives.DaemonStoppingReason.DAEMON_ABANDONED)
-        daemon.logger.warning(f"{handler} did not exit in time. Leaving it orphaned.")
+        daemon.logger.warning("%s did not exit in time. Leaving it orphaned.", handler)
         warnings.warn(f"{handler} did not exit in time.", ResourceWarning)
 
 
@@ -398,9 +398,9 @@ async def _resource_daemon(
             await sleeping.sleep_or_wait(state.delay, cause.stopper)
 
     if cause.stopper.is_set():
-        logger.debug(f"{handler} has exited on request and will not be retried or restarted.")
+        logger.debug("%s has exited on request and will not be retried or restarted.", handler)
     else:
-        logger.debug(f"{handler} has exited on its own and will not be retried or restarted.")
+        logger.debug("%s has exited on its own and will not be retried or restarted.", handler)
 
 
 async def _resource_timer(

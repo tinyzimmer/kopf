@@ -230,16 +230,16 @@ async def apply_reaction_outcomes(
     # The patching above, if done, interrupts the sleep instantly, so we skip it at all.
     # Note: a zero-second or negative sleep is still a sleep, it will trigger a dummy patch.
     if delay and patch:
-        logger.debug(f"Sleeping was skipped because of the patch, {delay} seconds left.")
+        logger.debug("Sleeping was skipped because of the patch, %r seconds left.", delay)
     elif delay is None and not patch:
-        logger.debug(f"Handling cycle is finished, waiting for new changes since now.")
+        logger.debug("Handling cycle is finished, waiting for new changes since now.")
     elif delay is not None:
         if delay > WAITING_KEEPALIVE_INTERVAL:
             limit = WAITING_KEEPALIVE_INTERVAL
-            logger.debug(f"Sleeping for {delay} (capped {limit}) seconds for the delayed handlers.")
+            logger.debug("Sleeping for %s (capped %s) seconds for the delayed handlers.", delay, limit)
             unslept_delay = await sleeping.sleep_or_wait(limit, replenished)
         elif delay > 0:
-            logger.debug(f"Sleeping for {delay} seconds for the delayed handlers.")
+            logger.debug("Sleeping for %s seconds for the delayed handlers.", delay)
             unslept_delay = await sleeping.sleep_or_wait(delay, replenished)
         else:
             unslept_delay = None  # no need to sleep? means: slept in full.
@@ -248,7 +248,7 @@ async def apply_reaction_outcomes(
         if patch and not delay:
             pass
         elif unslept_delay is not None:
-            logger.debug(f"Sleeping was interrupted by new changes, {unslept_delay} seconds left.")
+            logger.debug("Sleeping was interrupted by new changes, %s seconds left.", unslept_delay)
         else:
             # Any unique always-changing value will work; not necessary a timestamp.
             value = datetime.datetime.utcnow().isoformat()

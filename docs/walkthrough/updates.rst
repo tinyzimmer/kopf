@@ -45,7 +45,7 @@ with one additional line:
             body=data,
         )
 
-        logger.info(f"PVC child is created: %s", obj)
+        logger.info("PVC child is created: %s", obj)
 
         return {'pvc-name': obj.metadata.name}
 

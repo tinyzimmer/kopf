@@ -187,7 +187,7 @@ async def worker(
                 await processor(raw_event=raw_event, replenished=replenished)
             except Exception:
                 # TODO: processor is a functools.partial. make the prints a bit nicer by removing it.
-                logger.exception(f"{processor} failed with an exception. Ignoring the event.")
+                logger.exception("Processing has failed with an exception. Ignoring the event.")
                 # raise
 
     finally:
