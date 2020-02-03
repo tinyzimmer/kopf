@@ -110,7 +110,7 @@ async def process_resource_event(
     # Whatever was done, apply the accumulated changes to the object.
     # But only once, to reduce the number of API calls and the generated irrelevant events.
     if patch:
-        logger.debug("Patching with: %r", patch)
+        logger.debug(f"Patching with: {patch!r}")
         await patching.patch_obj(resource=resource, patch=patch, body=body)
 
     # Sleep strictly after patching, never before -- to keep the status proper.
@@ -199,9 +199,9 @@ async def process_resource_changing_cause(
     # Regular causes invoke the handlers.
     if cause.reason in causation.HANDLER_REASONS:
         title = causation.TITLES.get(cause.reason, repr(cause.reason))
-        logger.debug(f"{title.capitalize()} event: %r", body)
+        logger.debug(f"{title.capitalize()} event: {body!r}")
         if cause.diff and cause.old is not None and cause.new is not None:
-            logger.debug(f"{title.capitalize()} diff: %r", cause.diff)
+            logger.debug(f"{title.capitalize()} diff: {cause.diff!r}")
 
         handlers = registry.get_resource_changing_handlers(cause=cause)
         state = states.State.from_body(body=cause.body, handlers=handlers)

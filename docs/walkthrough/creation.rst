@@ -77,7 +77,7 @@ We will use the official Kubernetes client library (``pip install kubernetes``):
             body=data,
         )
 
-        logger.info(f"PVC child is created: %s", obj)
+        logger.info("PVC child is created: %s", obj)
 
 And let us try it in action (assuming the operator is running in the background):
 

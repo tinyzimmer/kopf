@@ -282,18 +282,18 @@ async def execute_handler_once(
 
     # Definitely a temporary error, regardless of the error strictness.
     except TemporaryError as e:
-        logger.error(f"Handler {handler.id!r} failed temporarily: %s", str(e) or repr(e))
+        logger.error(f"Handler {handler.id!r} failed temporarily: {str(e) or repr(e)}")
         return states.HandlerOutcome(final=False, exception=e, delay=e.delay)
 
     # Same as permanent errors below, but with better logging for our internal cases.
     except HandlerTimeoutError as e:
-        logger.error(f"%s", str(e) or repr(e))  # already formatted
+        logger.error(f"{str(e) or repr(e)}")  # already formatted
         return states.HandlerOutcome(final=True, exception=e)
         # TODO: report the handling failure somehow (beside logs/events). persistent status?
 
     # Definitely a permanent error, regardless of the error strictness.
     except PermanentError as e:
-        logger.error(f"Handler {handler.id!r} failed permanently: %s", str(e) or repr(e))
+        logger.error(f"Handler {handler.id!r} failed permanently: {str(e) or repr(e)}")
         return states.HandlerOutcome(final=True, exception=e)
         # TODO: report the handling failure somehow (beside logs/events). persistent status?
 

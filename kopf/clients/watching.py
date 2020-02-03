@@ -87,9 +87,9 @@ async def streaming_watch(
     # so the while-true & for-event-in-stream cycles exit, and this coroutine is started
     # again by the `infinite_stream()` (the watcher timeout is swallowed by the freeze time).
     if freeze_mode is not None and freeze_mode.is_on():
-        logger.debug("Freezing the watch-stream for %r", resource)
+        logger.debug(f"Freezing the watch-stream for {resource}")
         await freeze_mode.wait_for_off()
-        logger.debug("Resuming the watch-stream for %r", resource)
+        logger.debug(f"Resuming the watch-stream for {resource}")
 
     # A stop-feature is a client-specific way of terminating the streaming HTTPS connection
     # when a freeze-mode is turned on. The low-level API call attaches its `response.close()`
@@ -143,7 +143,7 @@ async def continuous_watch(
             # The resource versions are lost by k8s after few minutes (5, as per the official doc).
             # The error occurs when there is nothing happening for few minutes. This is normal.
             if event['type'] == 'ERROR' and cast(bodies.Error, event['object'])['code'] == 410:
-                logger.debug("Restarting the watch-stream for %r", resource)
+                logger.debug(f"Restarting the watch-stream for {resource}")
                 return  # out of the regular stream, to the infinite stream.
 
             # Other watch errors should be fatal for the operator.
@@ -152,7 +152,7 @@ async def continuous_watch(
 
             # Ensure that the event is something we understand and can handle.
             if event['type'] not in ['ADDED', 'MODIFIED', 'DELETED']:
-                logger.warning("Ignoring an unsupported event type: %r", event)
+                logger.warning(f"Ignoring an unsupported event type: {event!r}")
                 continue
 
             # Keep the latest seen resource version for continuation of the stream on disconnects.

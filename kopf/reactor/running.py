@@ -420,7 +420,7 @@ async def _root_task_checker(
         logger.debug(f"Root task {name!r} is cancelled.")
         raise
     except Exception as e:
-        logger.error(f"Root task {name!r} is failed: %r", e)
+        logger.error(f"Root task {name!r} is failed: {e}")
         raise  # fail the process and its exit status
     else:
         logger.warning(f"Root task {name!r} is finished unexpectedly.")
@@ -453,9 +453,9 @@ async def _stop_flag_checker(
         if result is None:
             logger.info("Stop-flag is raised. Operator is stopping.")
         elif isinstance(result, signal.Signals):
-            logger.info("Signal %s is received. Operator is stopping.", result.name)
+            logger.info("Signal {result.name!s} is received. Operator is stopping.")
         else:
-            logger.info("Stop-flag is set to %r. Operator is stopping.", result)
+            logger.info("Stop-flag is set to {result!r}. Operator is stopping.")
 
 
 async def _startup_cleanup_activities(
