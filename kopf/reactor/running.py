@@ -557,6 +557,11 @@ async def _startup_cleanup_activities(
         logger.warning("Cleanup activity is only partially executed due to cancellation.")
         raise
 
+    # Finish all the synchronous threads. WARNING: this sync call blocks the async coroutine!
+    # No sync handlers are expected at this stage (the last possible stage in the operator).
+    settings.execution.executor.shutdown(wait=True)
+    settings.execution.executor = None
+
 
 def create_tasks(
         loop: asyncio.AbstractEventLoop,
