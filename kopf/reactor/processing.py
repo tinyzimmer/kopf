@@ -232,7 +232,8 @@ async def apply_reaction_outcomes(
     if delay and patch:
         logger.debug(f"Sleeping was skipped because of the patch, {delay} seconds left.")
     elif delay is None and not patch:
-        logger.debug(f"Handling cycle is finished, waiting for new changes since now.")
+        pass  # TODO: do not log this if nothing was done at all (everything was filtered out).
+        # logger.debug(f"Handling cycle is finished, waiting for new changes since now.")
     elif delay is not None:
         if delay > WAITING_KEEPALIVE_INTERVAL:
             limit = WAITING_KEEPALIVE_INTERVAL

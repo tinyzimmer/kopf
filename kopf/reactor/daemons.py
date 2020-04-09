@@ -340,6 +340,11 @@ async def _runner(
 
     finally:
 
+        # This is the last chance for the patch to be applied, even if the daemon/timer missed it.
+        if cause.patch:
+            cause.logger.debug("Patching with: %r", cause.patch)
+            await patching.patch_obj(resource=cause.resource, patch=cause.patch, body=cause.body)
+
         # Prevent future re-spawns for those exited on their own, for no reason.
         # Only the filter-mismatching daemons can be re-spawned on future events.
         if cause.stopper.reason == primitives.DaemonStoppingReason.NONE:
@@ -388,6 +393,8 @@ async def _resource_daemon(
         state = state.with_outcomes(outcomes)
         states.deliver_results(outcomes=outcomes, patch=cause.patch)
 
+        # TODO: accumulated patch should be applied even if the daemon is cancelled.
+        #       even if it is canncelled at the sleep below, not only inside of a daemon.
         if cause.patch:
             cause.logger.debug("Patching with: %r", cause.patch)
             await patching.patch_obj(resource=cause.resource, patch=cause.patch, body=cause.body)
