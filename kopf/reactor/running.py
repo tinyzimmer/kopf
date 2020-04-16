@@ -13,6 +13,7 @@ from kopf.engines import posting
 from kopf.engines import probing
 from kopf.reactor import activities
 from kopf.reactor import daemons
+from kopf.reactor import discovery
 from kopf.reactor import lifecycles
 from kopf.reactor import processing
 from kopf.reactor import queueing
@@ -90,7 +91,7 @@ def run(
         priority: int = 0,
         peering_name: Optional[str] = None,
         liveness_endpoint: Optional[str] = None,
-        namespace: Optional[str] = None,
+        namespaces: Collection[str] = frozenset(),
         stop_flag: Optional[primitives.Flag] = None,
         ready_flag: Optional[primitives.Flag] = None,
         vault: Optional[credentials.Vault] = None,
@@ -108,7 +109,7 @@ def run(
             settings=settings,
             memories=memories,
             standalone=standalone,
-            namespace=namespace,
+            namespaces=namespaces,
             priority=priority,
             peering_name=peering_name,
             liveness_endpoint=liveness_endpoint,
@@ -130,7 +131,8 @@ async def operator(
         priority: int = 0,
         peering_name: Optional[str] = None,
         liveness_endpoint: Optional[str] = None,
-        namespace: Optional[str] = None,
+        namespaces: Collection[str] = (),
+        namespace: Optional[str] = None,  # deprecated
         stop_flag: Optional[primitives.Flag] = None,
         ready_flag: Optional[primitives.Flag] = None,
         vault: Optional[credentials.Vault] = None,
@@ -150,6 +152,7 @@ async def operator(
         settings=settings,
         memories=memories,
         standalone=standalone,
+        namespaces=namespaces,
         namespace=namespace,
         priority=priority,
         peering_name=peering_name,
@@ -171,7 +174,8 @@ async def spawn_tasks(
         priority: int = 0,
         peering_name: Optional[str] = None,
         liveness_endpoint: Optional[str] = None,
-        namespace: Optional[str] = None,
+        namespaces: Collection[str] = (),
+        namespace: Optional[str] = None,  # deprecated
         stop_flag: Optional[primitives.Flag] = None,
         ready_flag: Optional[primitives.Flag] = None,
         vault: Optional[credentials.Vault] = None,
@@ -195,6 +199,9 @@ async def spawn_tasks(
     signal_flag: asyncio_Future = asyncio.Future()
     ready_flag = ready_flag if ready_flag is not None else asyncio.Event()
     tasks: MutableSequence[asyncio_Task] = []
+
+    if namespace:
+        namespaces = frozenset(namespaces) | {namespace}
 
     # Global credentials store for this operator, also for CRD-reading & peering mode detection.
     auth.vault_var.set(vault)
@@ -258,6 +265,7 @@ async def spawn_tasks(
         ])
 
     # Monitor the peers, unless explicitly disabled.
+    # TODO: one peering flag, but multiple peering objects to watch. because namespaces. or how else???
     ourselves: Optional[peering.Peer] = await peering.Peer.detect(
         id=peering.detect_own_id(), priority=priority,
         standalone=standalone, namespace=namespace, name=peering_name,
@@ -269,6 +277,7 @@ async def spawn_tasks(
             loop.create_task(_root_task_checker(
                 name="watcher of peering", ready_flag=ready_flag,
                 coro=queueing.watcher(
+                    # namespaces=namespaces,
                     namespace=namespace,
                     settings=settings,
                     resource=ourselves.resource,
@@ -277,24 +286,22 @@ async def spawn_tasks(
                                                 freeze_mode=freeze_mode)))),
         ])
 
-    # Resource event handling, only once for every known resource (de-duplicated).
-    for resource in registry.resources:
-        tasks.extend([
-            loop.create_task(_root_task_checker(
-                name=f"watcher of {resource.name}", ready_flag=ready_flag,
-                coro=queueing.watcher(
-                    namespace=namespace,
-                    settings=settings,
-                    resource=resource,
-                    freeze_mode=freeze_mode,
-                    processor=functools.partial(processing.process_resource_event,
-                                                lifecycle=lifecycle,
-                                                registry=registry,
-                                                settings=settings,
-                                                memories=memories,
-                                                resource=resource,
-                                                event_queue=event_queue)))),
-        ])
+    # Permanent awareness of what resource kinds and what namespaces are available in the cluster.
+    tasks.extend([
+        loop.create_task(_root_task_checker(
+            name=f"watcher of resources", ready_flag=ready_flag,
+            coro=discovery.discovery(
+                namespaces=namespaces,
+                registry=registry,
+                settings=settings,
+                freeze_mode=freeze_mode,
+                processor=functools.partial(processing.process_resource_event,
+                                            lifecycle=lifecycle,
+                                            registry=registry,
+                                            settings=settings,
+                                            memories=memories,
+                                            event_queue=event_queue)))),
+    ])
 
     # On Ctrl+C or pod termination, cancel all tasks gracefully.
     if threading.current_thread() is threading.main_thread():

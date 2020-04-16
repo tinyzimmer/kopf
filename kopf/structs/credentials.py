@@ -141,6 +141,7 @@ class Vault(AsyncIterable[Tuple[VaultKey, ConnectionInfo]]):
             self,
             factory: Callable[[ConnectionInfo], _T],
             purpose: Optional[str] = None,
+            requested_info: Optional[ConnectionInfo] = None,
     ) -> AsyncIterator[Tuple[VaultKey, ConnectionInfo, _T]]:
         """
         Iterate the connection info items with their cached object.
@@ -153,7 +154,7 @@ class Vault(AsyncIterable[Tuple[VaultKey, ConnectionInfo]]):
         It is called only once per item and purpose.
         """
         purpose = purpose if purpose is not None else repr(factory)
-        async for key, item in self._items():
+        async for key, item in self._items(requested_info=requested_info):
             if item.caches is None:  # quick-check with no locking overhead.
                 async with self._lock:
                     if item.caches is None:  # securely synchronised check.
@@ -166,6 +167,8 @@ class Vault(AsyncIterable[Tuple[VaultKey, ConnectionInfo]]):
 
     async def _items(
             self,
+            *,
+            requested_info: Optional[ConnectionInfo] = None,
     ) -> AsyncIterator[Tuple[VaultKey, VaultItem]]:
         """
         Yield the raw items as stored in the vault in random order.
@@ -186,7 +189,7 @@ class Vault(AsyncIterable[Tuple[VaultKey, ConnectionInfo]]):
 
             # Select the items to yield and let it (i.e. a consumer) work.
             async with self._lock:
-                yielded_key, yielded_item = self.select()
+                yielded_key, yielded_item = self.select(requested_info=requested_info)
             yield yielded_key, yielded_item
 
             # If the yielded item has been invalidated, assume that this item has failed.
@@ -196,7 +199,11 @@ class Vault(AsyncIterable[Tuple[VaultKey, ConnectionInfo]]):
                 if yielded_key in self._current and self._current[yielded_key] is yielded_item:
                     break
 
-    def select(self) -> Tuple[VaultKey, VaultItem]:
+    def select(
+            self,
+            *,
+            requested_info: Optional[ConnectionInfo] = None,
+    ) -> Tuple[VaultKey, VaultItem]:
         """
         Select the next item (not the info!) to try (and do so infinitely).
 
@@ -206,6 +213,13 @@ class Vault(AsyncIterable[Tuple[VaultKey, ConnectionInfo]]):
         """
         if not self._current:
             raise LoginError("No valid credentials are available.")
+
+        if requested_info is not None:
+            for key, item in self._current.items():
+                if item.info is requested_info:  # by identity, not equality!
+                    return key, item
+            raise LoginError("Requested credentials are not found. This is a bug.")
+
         prioritised: Dict[int, List[Tuple[VaultKey, VaultItem]]]
         prioritised = collections.defaultdict(list)
         for key, item in self._current.items():

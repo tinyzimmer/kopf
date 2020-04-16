@@ -6,7 +6,10 @@ def resume_fn_1(**kwargs):
     print(f'RESUMED 1st')
 
 
-@kopf.on.create('zalando.org', 'v1', 'kopfexamples')
+# @kopf.on.create('zalando.org', 'v1', 'kopfexamples')
+@kopf.on.create('zalando.org', '*', '*')
+# @kopf.on.create('KopfExample')  # TODO: support alternative and short names
+# @kopf.on.create('kex')  # TODO: support alternative and short names
 def create_fn_1(**kwargs):
     print('CREATED 1st')
 

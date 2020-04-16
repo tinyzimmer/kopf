@@ -1,7 +1,7 @@
 import asyncio
 import dataclasses
 import functools
-from typing import Any, Optional, Callable, List
+from typing import Any, Optional, Callable, List, Collection
 
 import click
 
@@ -48,7 +48,8 @@ def main() -> None:
 
 @main.command()
 @logging_options
-@click.option('-n', '--namespace', default=None)
+@click.option('-n', '--namespace', 'namespaces', multiple=True)
+@click.option('-A', '--all-namespaces', is_flag=True)
 @click.option('--standalone', is_flag=True, default=False)
 @click.option('--dev', 'priority', type=int, is_flag=True, flag_value=666)
 @click.option('-L', '--liveness', 'liveness_endpoint', type=str)
@@ -64,10 +65,16 @@ def run(
         peering_name: Optional[str],
         priority: int,
         standalone: bool,
-        namespace: Optional[str],
+        namespaces: Collection[str],
+        all_namespaces: bool,
         liveness_endpoint: Optional[str],
 ) -> None:
     """ Start an operator process and handle all the requests. """
+    if namespaces and all_namespaces:
+        raise click.UsageError("Either --namespace or --all-namespaces can be used, not both.")
+    elif all_namespaces:
+        namespaces = {None}  # TODO: special marker for WHOLE_CLUSTER?
+
     if __controls.registry is not None:
         registries.set_default_registry(__controls.registry)
     loaders.preload(
@@ -76,7 +83,7 @@ def run(
     )
     return running.run(
         standalone=standalone,
-        namespace=namespace,
+        namespaces=namespaces,
         priority=priority,
         peering_name=peering_name,
         liveness_endpoint=liveness_endpoint,

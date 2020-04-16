@@ -2,11 +2,15 @@ import urllib.parse
 from typing import NamedTuple, Optional, Mapping, List
 
 
+# TODO: RENAME: ResourceSpec -- to make it less ambiguous which resource we use in different places
 # An immutable reference to a custom resource definition.
 class Resource(NamedTuple):
     group: str
     version: str
     plural: str
+
+    def __repr__(self):
+        return f'{self.name}/{self.version}'
 
     @property
     def name(self) -> str:
@@ -62,3 +66,32 @@ class Resource(NamedTuple):
         path = '/'.join([part for part in parts if part])
         url = path + ('?' if query else '') + query
         return url if server is None else server.rstrip('/') + '/' + url.lstrip('/')
+
+
+# GlobbedResource
+# ActualResource
+# ResourceRef
+# RealResource
+# ResourceMask
+# ResourceGlob
+# ResourceSpec
+class ResourceGlob(NamedTuple):
+    """
+    A pre-parsed glob referencing multiple resources.
+
+    A glob is not usable in API calls, so it has no endpoints/URLs. It is used
+    only locally in the operator to match against the actual resources.
+    """
+    group: str
+    version: str
+    plural: str
+
+    def check(
+            self,
+            resource: Resource,
+    ) -> bool:
+        return (
+            (self.group == '*' or self.group == resource.group) and
+            (self.version == '*' or self.version == resource.version) and
+            (self.plural == '*' or self.plural == resource.plural)
+        )

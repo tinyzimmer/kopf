@@ -1,5 +1,5 @@
 """
-An every-running tasks to keep the operator functional.
+An ever-running tasks to keep the operator functional.
 
 Consumes a credentials vault, and monitors that it has enough credentials.
 When the credentials are invalidated (i.e. excluded), run the re-authentication
@@ -19,6 +19,7 @@ The process is intentionally split into multiple packages:
 import logging
 from typing import NoReturn, Mapping, MutableMapping
 
+from kopf.clients import auth
 from kopf.engines import sleeping
 from kopf.reactor import causation
 from kopf.reactor import handling
@@ -94,6 +95,10 @@ async def authenticate(
 
     # Feed the credentials into the vault, and unfreeze the re-authenticating clients.
     await vault.populate({str(handler_id): info for handler_id, info in activity_results.items()})
+    
+    # TODO: trigger resource discovery for every of the new (or for all?) sessions/context.
+    # for info in activity_results.values():
+    #     await auth.reauthenticated_task(requested_info=info, fn=...)
 
 
 async def run_activity(

@@ -6,6 +6,7 @@ from typing import NewType, Optional, Any
 from kopf.structs import callbacks
 from kopf.structs import dicts
 from kopf.structs import filters
+from kopf.structs import resources
 
 # Strings are taken from the users, but then tainted as this type for stricter type-checking:
 # to prevent usage of some other strings (e.g. operator id) as the handlers ids.
@@ -111,6 +112,7 @@ class ActivityHandler(BaseHandler):
 
 @dataclasses.dataclass
 class ResourceHandler(BaseHandler):
+    resource: Optional[resources.ResourceGlob]
     labels: Optional[filters.MetaFilter]
     annotations: Optional[filters.MetaFilter]
     when: Optional[callbacks.WhenFilterFn]

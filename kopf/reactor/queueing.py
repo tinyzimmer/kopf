@@ -22,7 +22,6 @@ in case the events are for any reason delayed by Kubernetes.
 The conversion of the low-level watch-events to the high-level causes
 is done in the `kopf.reactor.handling` routines.
 """
-
 import asyncio
 import enum
 import logging
@@ -93,12 +92,15 @@ async def watcher(
     The watcher is generally a never-ending task (unless an error happens or it is cancelled).
     The workers, on the other hand, are limited approximately to the life-time of an object's event.
     """
+    where = f'in {namespace}' if namespace else 'cluster-wide'
 
     # All per-object workers are handled as fire-and-forget jobs via the scheduler,
     # and communicated via the per-object event queues.
     scheduler = await aiojobs.create_scheduler(limit=settings.batching.worker_limit)
     streams: Streams = {}
     try:
+        logger.debug(f"Starting to watch for {resource} {where}.")
+
         # Either use the existing object's queue, or create a new one together with the per-object job.
         # "Fire-and-forget": we do not wait for the result; the job destroys itself when it is fully done.
         stream = watching.infinite_watch(
@@ -122,6 +124,8 @@ async def watcher(
                     key=key,
                 ))
     finally:
+        logger.debug(f"Stopping to watch for {resource} {where}.")
+
         # Allow the existing workers to finish gracefully before killing them.
         await _wait_for_depletion(scheduler=scheduler, streams=streams, settings=settings)
 

@@ -50,6 +50,7 @@ class GenericRegistry(Generic[HandlerFnT, HandlerT]):
         self._handlers = []
 
     def __bool__(self) -> bool:
+        raise NotImplementedError("STOP USING IT")  # TODO
         return bool(self._handlers)
 
     def append(self, handler: HandlerT) -> None:
@@ -114,6 +115,15 @@ class ResourceRegistry(
         Generic[CauseT, HandlerFnT, ResourceHandlerT],
         GenericRegistry[HandlerFnT, ResourceHandlerT]):
 
+    def has_handlers(
+            self,
+            resource: resources_.Resource,
+    ) -> bool:
+        for handler in self._handlers:
+            if _matches_resource(handler, resource):
+                return True
+        return False
+
     def get_handlers(
             self,
             cause: CauseT,
@@ -129,18 +139,24 @@ class ResourceRegistry(
     ) -> Iterator[ResourceHandlerT]:
         raise NotImplementedError
 
+    # TODO: does it need cause/resource? since it is now global, not per-resource.
     def get_extra_fields(
             self,
+            resource: resources_.Resource,
     ) -> Set[dicts.FieldPath]:
-        return set(self.iter_extra_fields())
+        return set(self.iter_extra_fields(resource=resource))
 
+    # TODO: does it need cause/resource? since it is now global, not per-resource.
     def iter_extra_fields(
             self,
+            resource: resources_.Resource,
     ) -> Iterator[dicts.FieldPath]:
         for handler in self._handlers:
-            if handler.field:
-                yield handler.field
+            if _matches_resource(handler, resource):
+                if handler.field:
+                    yield handler.field
 
+    # TODO: does it need cause/resource? since it is now global, not per-resource.
     def requires_finalizer(
             self,
             cause: causation.ResourceCause,
@@ -278,6 +294,25 @@ class ResourceChangingRegistry(ResourceRegistry[
                         yield handler
 
 
+# TODO: It should not be a Resource[Watching|Changing]Registry,
+#       but a Resource[...]RegistryView -- with its own get_handlers()/iter_handlers() methods.
+#           registry.resource_changing_handlers[<dom.com,v1,reses>]
+#           ^^
+#           |+- registry.resource_changing_handlers[<*,*,*>]
+#           +-- registry.resource_changing_handlers[<dom.com,*,reses>]
+#
+# TODO: OR: Avoid mappings at all. Use a flat list of handlers for everything.
+#       BUT put resource-glob to the ResourceHandler:
+#               registry.resource_changing_handlers.append(handler)
+#               registry.resource_changing_handlers.remove(handler)?
+#           and filter by cause.resource_spec ~ handler.resource_glob.
+#       ==> Which means, restoration of get_blah_blah_handlers() methods. BAD.
+#           We want:
+#               registry.resource_changing_handlers.has_handlers(cause)
+#               registry.resource_changing_handlers.get_handlers(cause)
+#               registry.resource_changing_handlers.iter_handlers(cause)
+
+
 class OperatorRegistry:
     """
     A global registry is used for handling of multiple resources & activities.
@@ -286,23 +321,40 @@ class OperatorRegistry:
     be explicitly created and used in the embedded operators.
     """
     activity_handlers: ActivityRegistry
-    resource_watching_handlers: MutableMapping[resources_.Resource, ResourceWatchingRegistry]
-    resource_spawning_handlers: MutableMapping[resources_.Resource, ResourceSpawningRegistry]
-    resource_changing_handlers: MutableMapping[resources_.Resource, ResourceChangingRegistry]
+    resource_watching_handlers: ResourceWatchingRegistry
+    resource_spawning_handlers: ResourceSpawningRegistry
+    resource_changing_handlers: ResourceChangingRegistry
+    # TODO: here, it should be ResourceGlobs. And then, the difficult part of selecting.
+    # resource_watching_handlers: Mapping[resources_.Resource, ResourceWatchingRegistry]
+    # resource_spawning_handlers: Mapping[resources_.Resource, ResourceSpawningRegistry]
+    # resource_changing_handlers: Mapping[resources_.Resource, ResourceChangingRegistry]
 
     def __init__(self) -> None:
         super().__init__()
         self.activity_handlers = ActivityRegistry()
-        self.resource_watching_handlers = collections.defaultdict(ResourceWatchingRegistry)
-        self.resource_spawning_handlers = collections.defaultdict(ResourceSpawningRegistry)
-        self.resource_changing_handlers = collections.defaultdict(ResourceChangingRegistry)
+        self.resource_watching_handlers = ResourceWatchingRegistry()
+        self.resource_spawning_handlers = ResourceSpawningRegistry()
+        self.resource_changing_handlers = ResourceChangingRegistry()
+        # self.resource_watching_handlers = collections.defaultdict(ResourceWatchingRegistry)
+        # self.resource_spawning_handlers = collections.defaultdict(ResourceSpawningRegistry)
+        # self.resource_changing_handlers = collections.defaultdict(ResourceChangingRegistry)
+
+    def has_handlers(
+            self,
+            resource: resources_.Resource,
+    ) -> bool:
+        return (self.resource_watching_handlers.has_handlers(resource=resource) or
+                self.resource_spawning_handlers.has_handlers(resource=resource) or
+                self.resource_changing_handlers.has_handlers(resource=resource))
 
     @property
     def resources(self) -> FrozenSet[resources_.Resource]:
         """ All known resources in the registry. """
-        return (frozenset(self.resource_watching_handlers) |
-                frozenset(self.resource_spawning_handlers) |
-                frozenset(self.resource_changing_handlers))
+        # TODO: Stop using it. We do not spawn all known resources anymore, we discover them from the cluster.
+        raise NotImplementedError("STOP USING IT")  # TODO
+        # return (frozenset(self.resource_watching_handlers) |
+        #         frozenset(self.resource_spawning_handlers) |
+        #         frozenset(self.resource_changing_handlers))
 
     #
     # Everything below is deprecated and will be removed in the next major release.
@@ -616,11 +668,20 @@ def match(
     # Kwargs are lazily evaluated on the first _actual_ use, and shared for all filters since then.
     kwargs: MutableMapping[str, Any] = {}
     return all([
+        _matches_resource(handler, cause.resource),
         _matches_field(handler, changed_fields or {}, ignore_fields),
         _matches_labels(handler, cause, kwargs),
         _matches_annotations(handler, cause, kwargs),
         _matches_filter_callback(handler, cause, kwargs),
     ])
+
+
+def _matches_resource(
+        handler: handlers.ResourceHandler,
+        resource: resources_.Resource,
+) -> bool:
+    return (handler.resource is None or
+            handler.resource.check(resource))
 
 
 def _matches_field(

@@ -149,16 +149,16 @@ def resume(  # lgtm[py/similar-function]
         _warn_deprecated_signatures(fn)
         _warn_deprecated_filters(labels, annotations)
         real_registry = registry if registry is not None else registries.get_default_registry()
-        real_resource = resources.Resource(group, version, plural)
+        real_resource = resources.ResourceGlob(group, version, plural)
         real_id = registries.generate_id(fn=fn, id=id)
         handler = handlers.ResourceChangingHandler(
             fn=fn, id=real_id, field=None,
             errors=errors, timeout=timeout, retries=retries, backoff=backoff, cooldown=cooldown,
             labels=labels, annotations=annotations, when=when,
             initial=True, deleted=deleted, requires_finalizer=None,
-            reason=None,
+            resource=real_resource, reason=None,
         )
-        real_registry.resource_changing_handlers[real_resource].append(handler)
+        real_registry.resource_changing_handlers.append(handler)
         return fn
     return decorator
 
@@ -182,16 +182,16 @@ def create(  # lgtm[py/similar-function]
         _warn_deprecated_signatures(fn)
         _warn_deprecated_filters(labels, annotations)
         real_registry = registry if registry is not None else registries.get_default_registry()
-        real_resource = resources.Resource(group, version, plural)
+        real_resource = resources.ResourceGlob(group, version, plural)
         real_id = registries.generate_id(fn=fn, id=id)
         handler = handlers.ResourceChangingHandler(
             fn=fn, id=real_id, field=None,
             errors=errors, timeout=timeout, retries=retries, backoff=backoff, cooldown=cooldown,
             labels=labels, annotations=annotations, when=when,
             initial=None, deleted=None, requires_finalizer=None,
-            reason=handlers.Reason.CREATE,
+            resource=real_resource, reason=handlers.Reason.CREATE,
         )
-        real_registry.resource_changing_handlers[real_resource].append(handler)
+        real_registry.resource_changing_handlers.append(handler)
         return fn
     return decorator
 
@@ -215,16 +215,16 @@ def update(  # lgtm[py/similar-function]
         _warn_deprecated_signatures(fn)
         _warn_deprecated_filters(labels, annotations)
         real_registry = registry if registry is not None else registries.get_default_registry()
-        real_resource = resources.Resource(group, version, plural)
+        real_resource = resources.ResourceGlob(group, version, plural)
         real_id = registries.generate_id(fn=fn, id=id)
         handler = handlers.ResourceChangingHandler(
             fn=fn, id=real_id, field=None,
             errors=errors, timeout=timeout, retries=retries, backoff=backoff, cooldown=cooldown,
             labels=labels, annotations=annotations, when=when,
             initial=None, deleted=None, requires_finalizer=None,
-            reason=handlers.Reason.UPDATE,
+            resource=real_resource, reason=handlers.Reason.UPDATE,
         )
-        real_registry.resource_changing_handlers[real_resource].append(handler)
+        real_registry.resource_changing_handlers.append(handler)
         return fn
     return decorator
 
@@ -249,16 +249,16 @@ def delete(  # lgtm[py/similar-function]
         _warn_deprecated_signatures(fn)
         _warn_deprecated_filters(labels, annotations)
         real_registry = registry if registry is not None else registries.get_default_registry()
-        real_resource = resources.Resource(group, version, plural)
+        real_resource = resources.ResourceGlob(group, version, plural)
         real_id = registries.generate_id(fn=fn, id=id)
         handler = handlers.ResourceChangingHandler(
             fn=fn, id=real_id, field=None,
             errors=errors, timeout=timeout, retries=retries, backoff=backoff, cooldown=cooldown,
             labels=labels, annotations=annotations, when=when,
             initial=None, deleted=None, requires_finalizer=bool(not optional),
-            reason=handlers.Reason.DELETE,
+            resource=real_resource, reason=handlers.Reason.DELETE,
         )
-        real_registry.resource_changing_handlers[real_resource].append(handler)
+        real_registry.resource_changing_handlers.append(handler)
         return fn
     return decorator
 
@@ -283,7 +283,7 @@ def field(  # lgtm[py/similar-function]
         _warn_deprecated_signatures(fn)
         _warn_deprecated_filters(labels, annotations)
         real_registry = registry if registry is not None else registries.get_default_registry()
-        real_resource = resources.Resource(group, version, plural)
+        real_resource = resources.ResourceGlob(group, version, plural)
         real_field = dicts.parse_field(field) or None  # to not store tuple() as a no-field case.
         real_id = registries.generate_id(fn=fn, id=id, suffix=".".join(real_field or []))
         handler = handlers.ResourceChangingHandler(
@@ -291,9 +291,9 @@ def field(  # lgtm[py/similar-function]
             errors=errors, timeout=timeout, retries=retries, backoff=backoff, cooldown=cooldown,
             labels=labels, annotations=annotations, when=when,
             initial=None, deleted=None, requires_finalizer=None,
-            reason=None,
+            resource=real_resource, reason=None,
         )
-        real_registry.resource_changing_handlers[real_resource].append(handler)
+        real_registry.resource_changing_handlers.append(handler)
         return fn
     return decorator
 
@@ -312,14 +312,15 @@ def event(  # lgtm[py/similar-function]
         _warn_deprecated_signatures(fn)
         _warn_deprecated_filters(labels, annotations)
         real_registry = registry if registry is not None else registries.get_default_registry()
-        real_resource = resources.Resource(group, version, plural)
+        real_resource = resources.ResourceGlob(group, version, plural)
         real_id = registries.generate_id(fn=fn, id=id)
         handler = handlers.ResourceWatchingHandler(
             fn=fn, id=real_id,
             errors=None, timeout=None, retries=None, backoff=None, cooldown=None,
             labels=labels, annotations=annotations, when=when,
+            resource=real_resource,
         )
-        real_registry.resource_watching_handlers[real_resource].append(handler)
+        real_registry.resource_watching_handlers.append(handler)
         return fn
     return decorator
 
@@ -347,10 +348,10 @@ def daemon(  # lgtm[py/similar-function]
         _warn_deprecated_signatures(fn)
         _warn_deprecated_filters(labels, annotations)
         real_registry = registry if registry is not None else registries.get_default_registry()
-        real_resource = resources.Resource(group, version, plural)
+        real_resource = resources.ResourceGlob(group, version, plural)
         real_id = registries.generate_id(fn=fn, id=id)
         handler = handlers.ResourceDaemonHandler(
-            fn=fn, id=real_id,
+            fn=fn, id=real_id, resource=real_resource,
             errors=errors, timeout=timeout, retries=retries, backoff=backoff, cooldown=cooldown,
             labels=labels, annotations=annotations, when=when,
             initial_delay=initial_delay, requires_finalizer=True,  #TODO: requires_finalizer? "optional"?
@@ -358,7 +359,7 @@ def daemon(  # lgtm[py/similar-function]
             cancellation_timeout=cancellation_timeout,
             cancellation_polling=cancellation_polling,
         )
-        real_registry.resource_spawning_handlers[real_resource].append(handler)
+        real_registry.resource_spawning_handlers.append(handler)
         return fn
     return decorator
 
@@ -386,16 +387,16 @@ def timer(  # lgtm[py/similar-function]
         _warn_deprecated_signatures(fn)
         _warn_deprecated_filters(labels, annotations)
         real_registry = registry if registry is not None else registries.get_default_registry()
-        real_resource = resources.Resource(group, version, plural)
+        real_resource = resources.ResourceGlob(group, version, plural)
         real_id = registries.generate_id(fn=fn, id=id)
         handler = handlers.ResourceTimerHandler(
-            fn=fn, id=real_id,
+            fn=fn, id=real_id, resource=real_resource,
             errors=errors, timeout=timeout, retries=retries, backoff=backoff, cooldown=cooldown,
             labels=labels, annotations=annotations, when=when,
             initial_delay=initial_delay, requires_finalizer=None,
             sharp=sharp, idle=idle, interval=interval,
         )
-        real_registry.resource_spawning_handlers[real_resource].append(handler)
+        real_registry.resource_spawning_handlers.append(handler)
         return fn
     return decorator
 
@@ -456,7 +457,8 @@ def this(  # lgtm[py/similar-function]
             errors=errors, timeout=timeout, retries=retries, backoff=backoff, cooldown=cooldown,
             labels=labels, annotations=annotations, when=when,
             initial=None, deleted=None, requires_finalizer=None,
-            reason=None,
+            resource=None, reason=None,
+            # TODO ^^^ FIXME: sub-handlers have no resources by design. don't they?
         )
         real_registry.append(handler)
         return fn

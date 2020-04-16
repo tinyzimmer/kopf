@@ -48,6 +48,24 @@ class WatchingError(Exception):
     """
 
 
+async def resource_watch(
+        *,
+        freeze_mode: Optional[primitives.Toggle] = None,
+) -> AsyncIterator[bodies.RawEvent]:
+    """
+    Stream the watch-event for the resource definitions (builtin and custom).
+    """
+
+    # Simulate listing of all the builtin resources, as if they would be watchable.
+
+
+
+    # And finally, go for infinite watch over the custom resources, which are added/removed
+    # at runtime dynamically (unlike the built-in resources, which we assume to be static).
+    async for event in infinite_watch(resource=fetching.CRD_CRD, freeze_mode=freeze_mode):
+        yield event
+
+
 async def infinite_watch(
         *,
         settings: configuration.OperatorSettings,

@@ -87,6 +87,18 @@ def reauthenticated_stream(fn: _F) -> _F:
     return cast(_F, wrapper)
 
 
+async def reauthenticated_task(requested_info: credentials.ConnectionInfo, fn: _F) -> _F:
+    vault: credentials.Vault = vault_var.get()
+    async for key, info, context in vault.extended(APIContext, 'contexts', requested_info=requested_info):
+        try:
+            return await fn(context=context)
+        except aiohttp.ClientResponseError as e:
+            if e.status == 401:
+                await vault.invalidate(key, exc=e)
+            else:
+                raise
+
+
 class APIContext:
     """
     A container for an aiohttp session and the caches of the environment info.

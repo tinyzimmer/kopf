@@ -84,7 +84,7 @@ async def process_resource_event(
     posting.event_queue_loop_var.set(asyncio.get_running_loop())
     posting.event_queue_var.set(event_queue)  # till the end of this object's task.
 
-    extra_fields = registry.resource_changing_handlers[resource].get_extra_fields()
+    extra_fields = registry.resource_changing_handlers.get_extra_fields(resource=resource)
     old = settings.persistence.diffbase_storage.fetch(body=body)
     new = settings.persistence.diffbase_storage.build(body=body, extra_fields=extra_fields)
     old = settings.persistence.progress_storage.clear(essence=old) if old is not None else None
@@ -99,7 +99,7 @@ async def process_resource_event(
         patch=patch,
         body=body,
         memo=memory.memo,
-    ) if registry.resource_watching_handlers[resource] else None
+    ) if registry.resource_watching_handlers.has_handlers(resource=resource) else None
 
     resource_spawning_cause = causation.detect_resource_spawning_cause(
         resource=resource,
@@ -108,7 +108,7 @@ async def process_resource_event(
         body=body,
         memo=memory.memo,
         reset=bool(diff),  # only essential changes reset idling, not every event
-    ) if registry.resource_spawning_handlers[resource] else None
+    ) if registry.resource_spawning_handlers.has_handlers(resource=resource) else None
 
     resource_changing_cause = causation.detect_resource_changing_cause(
         finalizer=finalizer,
@@ -122,7 +122,7 @@ async def process_resource_event(
         diff=diff,
         memo=memory.memo,
         initial=memory.noticed_by_listing and not memory.fully_handled_once,
-    ) if registry.resource_changing_handlers[resource] else None
+    ) if registry.resource_changing_handlers.has_handlers(resource=resource) else None
 
     # Block the object from deletion if we have anything to do in its end of life:
     # specifically, if there are daemons to kill or mandatory on-deletion handlers to call.
@@ -132,13 +132,13 @@ async def process_resource_event(
     deletion_is_blocked = finalizers.is_deletion_blocked(body=body, finalizer=finalizer)
     deletion_must_be_blocked = (
         (resource_spawning_cause is not None and
-         registry.resource_spawning_handlers[resource].requires_finalizer(
+         registry.resource_spawning_handlers.requires_finalizer(
              cause=resource_spawning_cause,
              excluded=memory.forever_stopped,
          ))
         or
         (resource_changing_cause is not None and
-         registry.resource_changing_handlers[resource].requires_finalizer(
+         registry.resource_changing_handlers.requires_finalizer(
              cause=resource_changing_cause,
          )))
 
@@ -275,7 +275,7 @@ async def process_resource_watching_cause(
     Note: K8s-event posting is skipped for `kopf.on.event` handlers,
     as they should be silent. Still, the messages are logged normally.
     """
-    handlers = registry.resource_watching_handlers[cause.resource].get_handlers(cause=cause)
+    handlers = registry.resource_watching_handlers.get_handlers(cause=cause)
     outcomes = await handling.execute_handlers_once(
         lifecycle=lifecycle,
         settings=settings,
@@ -323,7 +323,7 @@ async def process_resource_spawning_cause(
         return stopping_delays
 
     else:
-        handlers = registry.resource_spawning_handlers[cause.resource].get_handlers(
+        handlers = registry.resource_spawning_handlers.get_handlers(
             cause=cause,
             excluded=memory.forever_stopped,
         )
@@ -366,7 +366,7 @@ async def process_resource_changing_cause(
         if cause.diff and cause.old is not None and cause.new is not None:
             logger.debug(f"{title.capitalize()} diff: %r", cause.diff)
 
-        handlers = registry.resource_changing_handlers[cause.resource].get_handlers(cause=cause)
+        handlers = registry.resource_changing_handlers.get_handlers(cause=cause)
         storage = settings.persistence.progress_storage
         state = states.State.from_storage(body=cause.body, storage=storage, handlers=handlers)
         if handlers:
