@@ -54,6 +54,7 @@ def watcher_in_background(settings, resource, event_loop, worker_spy, stream):
         resource=resource,
         settings=settings,
         processor=do_nothing,
+        fatal_flag=asyncio.Event(),
     )
     task = event_loop.create_task(coro)
 

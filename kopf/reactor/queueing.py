@@ -78,6 +78,7 @@ async def watcher(
         settings: configuration.OperatorSettings,
         resource: resources.Resource,
         processor: WatchStreamProcessor,
+        fatal_flag: asyncio.Event,
         freeze_mode: Optional[primitives.Toggle] = None,
 ) -> None:
     """
@@ -91,6 +92,11 @@ async def watcher(
 
     The watcher is generally a never-ending task (unless an error happens or it is cancelled).
     The workers, on the other hand, are limited approximately to the life-time of an object's event.
+
+    Watchers spend their time in the infinite watch stream, not in task waiting.
+    The only valid way for a worker to wake up the watcher is to signal to the
+    root operator task about a fatal situation (via a fatal flag/future),
+    and let the operator cancel this watcher, so as all other watchers.
     """
 
     # All per-object workers are handled as fire-and-forget jobs via the scheduler,
@@ -119,12 +125,13 @@ async def watcher(
                     settings=settings,
                     streams=streams,
                     key=key,
+                    fatal_flag=fatal_flag,
                 ))
     finally:
         # Allow the existing workers to finish gracefully before killing them.
         await _wait_for_depletion(scheduler=scheduler, streams=streams, settings=settings)
 
-        # Forcedly terminate all the fire-and-forget per-object jobs, of they are still running.
+        # Terminate all the fire-and-forget per-object jobs if they are still running.
         await asyncio.shield(scheduler.close())
 
 
@@ -133,6 +140,7 @@ async def worker(
         settings: configuration.OperatorSettings,
         streams: Streams,
         key: ObjectRef,
+        fatal_flag: asyncio.Event,
 ) -> None:
     """
     The per-object workers consume the object's events and invoke the processors/handlers.
@@ -182,11 +190,16 @@ async def worker(
 
             # Try the processor. In case of errors, show the error, but continue the processing.
             replenished.clear()
-            try:
-                await processor(raw_event=raw_event, replenished=replenished)
-            except Exception:
-                logger.exception("Event processing failed with an exception. Ignoring the event.")
-                # raise
+            await processor(raw_event=raw_event, replenished=replenished)
+
+    except Exception:
+        # Stop the whole operator: all root tasks. Our own watcher will be cancelled as on exiting.
+        # Remember: workers run as aiojobs, their result/error is not checked normally,
+        # and there can be a few of them failing -- so we log everything here, not above.
+        logger.exception("Event processing has failed with an unrecoverable error. "
+                         "This seems to be a framework bug. "
+                         "The operator will stop to prevent damage.")
+        fatal_flag.set()
 
     finally:
         # Whether an exception or a break or a success, notify the caller, and garbage-collect our queue.

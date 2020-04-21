@@ -60,6 +60,7 @@ async def test_watchevent_demultiplexing(worker_mock, timer, resource, processor
             resource=resource,
             settings=settings,
             processor=processor,
+            fatal_flag=asyncio.Event(),
         )
 
     # The streams are not cleared by the mocked worker, but the worker exits fast.
@@ -135,6 +136,7 @@ async def test_watchevent_batching(settings, resource, processor, timer,
             resource=resource,
             settings=settings,
             processor=processor,
+            fatal_flag=asyncio.Event(),
         )
 
     # Significantly less than the queue getting timeout, but sufficient to run.

@@ -193,6 +193,7 @@ async def spawn_tasks(
     event_queue: posting.K8sEventQueue = asyncio.Queue()
     freeze_mode: primitives.Toggle = primitives.Toggle()
     signal_flag: asyncio_Future = asyncio.Future()
+    fatal_flag: asyncio.Event = asyncio.Event()
     ready_flag = ready_flag if ready_flag is not None else asyncio.Event()
     tasks: MutableSequence[asyncio_Task] = []
 
@@ -207,6 +208,7 @@ async def spawn_tasks(
     tasks.extend([
         loop.create_task(_stop_flag_checker(
             signal_flag=signal_flag,
+            fatal_flag=fatal_flag,
             stop_flag=stop_flag,
         )),
         loop.create_task(_startup_cleanup_activities(
@@ -272,6 +274,7 @@ async def spawn_tasks(
                     namespace=namespace,
                     settings=settings,
                     resource=ourselves.resource,
+                    fatal_flag=fatal_flag,
                     processor=functools.partial(peering.process_peering_event,
                                                 ourselves=ourselves,
                                                 freeze_mode=freeze_mode)))),
@@ -286,6 +289,7 @@ async def spawn_tasks(
                     namespace=namespace,
                     settings=settings,
                     resource=resource,
+                    fatal_flag=fatal_flag,
                     freeze_mode=freeze_mode,
                     processor=functools.partial(processing.process_resource_event,
                                                 lifecycle=lifecycle,
@@ -463,6 +467,7 @@ async def _root_task_checker(
 
 async def _stop_flag_checker(
         signal_flag: asyncio_Future,
+        fatal_flag: asyncio.Event,
         stop_flag: Optional[primitives.Flag],
 ) -> None:
     """
@@ -471,9 +476,7 @@ async def _stop_flag_checker(
     """
 
     # Selects the flags to be awaited (if set).
-    flags = []
-    if signal_flag is not None:
-        flags.append(signal_flag)
+    flags = [signal_flag, fatal_flag.wait()]
     if stop_flag is not None:
         flags.append(asyncio.create_task(primitives.wait_flag(stop_flag)))
 
@@ -485,12 +488,14 @@ async def _stop_flag_checker(
     except asyncio.CancelledError:
         pass  # operator is stopping for any other reason
     else:
-        if result is None:
-            logger.info("Stop-flag is raised. Operator is stopping.")
+        if fatal_flag.is_set():
+            logger.info("Unrecoverable error has happened. Operator is stopping.")
         elif isinstance(result, signal.Signals):
             logger.info("Signal %s is received. Operator is stopping.", result.name)
-        else:
+        elif result is not None:
             logger.info("Stop-flag is set to %r. Operator is stopping.", result)
+        else:
+            logger.info("Stop-flag is raised. Operator is stopping.")
 
 
 async def _startup_cleanup_activities(
