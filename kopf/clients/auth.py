@@ -39,6 +39,9 @@ def reauthenticated_request(fn: _F) -> _F:
             return await fn(*args, **kwargs)
 
         # Otherwise, attempt the execution with the vault credentials and re-authenticate on 401s.
+        # FIXME: https://github.com/zalando-incubator/kopf/issues/349
+        #       raise LoginError() INSTEAD of 401, but _from_ or _during_ 401.
+        #       then add better hints on installing kubernetes/pykube-ng (if not installed)
         vault: credentials.Vault = vault_var.get()
         async for key, info, context in vault.extended(APIContext, 'contexts'):
             try:

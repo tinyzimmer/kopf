@@ -30,6 +30,7 @@ def login_via_client(
         **kwargs: Any,
 ) -> Optional[credentials.ConnectionInfo]:
 
+    # Keep imports in the function, as module imports are mocked in some tests.
     try:
         import kubernetes.config
     except ImportError:
@@ -80,6 +81,7 @@ def login_via_pykube(
         **kwargs: Any,
 ) -> Optional[credentials.ConnectionInfo]:
 
+    # Keep imports in the function, as module imports are mocked in some tests.
     try:
         import pykube
     except ImportError:

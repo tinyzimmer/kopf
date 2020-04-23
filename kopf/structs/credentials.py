@@ -256,7 +256,7 @@ class Vault(AsyncIterable[Tuple[VaultKey, ConnectionInfo]]):
         async with self._lock:
             if not self._current:
                 if exc is not None:
-                    raise exc
+                    raise LoginError("No valid credentials are available.") from exc
 
     async def populate(
             self,
