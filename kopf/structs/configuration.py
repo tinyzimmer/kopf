@@ -123,6 +123,8 @@ class BatchingSettings:
     This is the time given to the worker to deplete and process the queue.
     """
 
+# TODO: regroup into ThrottlingSettings from here:
+
     error_delays: Iterable[float] = (1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233, 377, 610)
     """
     Backoff intervals in case of unexpected errors in the framework (not the handlers).
@@ -136,10 +138,58 @@ class BatchingSettings:
     If needed, this value can be an arbitrary collection/iterator/object:
     only ``iter()`` is called on every new throttling cycle, no other protocols
     are required; but make sure that it is re-iterable for multiple uses.
-    
+
     To disable throttling (on your own risk), set it to ``[]`` or ``()``.
     """
 
+    throttling_window: float = 10
+    throttling_cycles: float = 100 / 60
+    """
+    Tolerated amount of K8s API requests per second per resource.
+
+    A number of the past handling cycles is remembered for at most
+    `throttling_window` seconds. For simplicity, there is no window slicing --
+    a simplistic approach is used with consecutive time windows:
+    once the new window begins, the old one is forgotten and counter is reset.
+    On the technical level, a time window is defined as `now_unix_timestamp // throttling_window`.
+
+    The assumption is so that if a ping-pong incident happens, it happens evenly
+    distributed in time, and simplistic approach is sufficient to detect it.
+    More sophisticated logic can be added in the future if there will be cases
+    requiring it.
+
+    K8s API can throttle incoming requests with HTTP 429 Too Many Requests,
+    but this is done globally or per client (i.e. operator's service account).
+
+    While it is a good measure to prevent K8s itself from overloading
+    and crashing, Kopf-based operators can hit other issues with too many
+    incoming watch-events and outgoing patch-requests:
+    e.g. due to cross-operator ping-pong (mutually affecting changes).
+
+    This can escalate fast, so the humans would not have time to react.
+    To prevent such misbehavior, a limit on requests per second per resource
+    can be set with this setting. If the number of API requests originating
+    from the operator for an individual resource exceeds the limit,
+    the resource's processing will be paused in-memory:
+    no patching will be happening, but also no new events will be processed.
+    
+    If the operator stops during the pause, all pending changes can be lost
+    (though it will try to store them as a last resort). This, in turn, can
+    cause duplicate handling to happen after the operator restart.
+
+    TODO: NOPE. BAD IDEA.
+        =>  INSTEAD: throttle the incoming events.
+            Be "blind" if there are too many.
+            Then, no double-handling will happen.
+        !!! THis should work in pair with `batch_window`:
+            `batch_window` groups the fast-coming events in the stream,
+            while this setting must be an extension of it, and block even if
+            handlers are/were invoked. E.g. 100 handling cycles per 1 min. 
+    
+    This settings should be considered only as a safety measure to slow down
+    the incidents, not as a regular feature of operators or a framework.
+    For this same reason, throttling is not implemented for individual handlers. 
+    """
 
 
 @dataclasses.dataclass
@@ -269,5 +319,6 @@ class OperatorSettings:
     watching: WatchingSettings = dataclasses.field(default_factory=WatchingSettings)
     batching: BatchingSettings = dataclasses.field(default_factory=BatchingSettings)
     execution: ExecutionSettings = dataclasses.field(default_factory=ExecutionSettings)
+    # throttling: ThrottlingSettings = dataclasses.field(default_factory=ThrottlingSettings)
     background: BackgroundSettings = dataclasses.field(default_factory=BackgroundSettings)
     persistence: PersistenceSettings = dataclasses.field(default_factory=PersistenceSettings)
