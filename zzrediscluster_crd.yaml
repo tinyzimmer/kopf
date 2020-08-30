@@ -1,0 +1,74 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: zzredisclusters.kopf.io
+spec:
+  group: kopf.io
+  names:
+    kind: ZZRedisCluster
+    listKind: ZZRedisClusterList
+    plural: zzredisclusters
+    singular: zzrediscluster
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: ZZRedisCluster is the Schema for the zzredisclusters API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: ZZRedisClusterSpec defines the desired state of ZZRedisCluster
+            properties:
+              config:
+                description: Configuration options for redis pointing to custom class.
+                  You can use multiline strings.
+                properties:
+                  someString:
+                    description: This is an example string inside the redis config.
+                    type: string
+                type: object
+              someBool:
+                description: This is an example boolean.
+                type: boolean
+              someDynamicItem:
+                anyOf:
+                - type: string
+                - type: integer
+                description: This is an example of a single field that can be a string
+                  or integer.
+              someDynamicList:
+                description: This is an example of an array that can contain strings
+                  and integers.
+                items:
+                  anyOf:
+                  - type: string
+                  - type: integer
+                type: array
+              someInt:
+                description: This is an example integer.
+                type: integer
+              someList:
+                description: This is an example array of strings.
+                items:
+                  type: string
+                type: array
+              someString:
+                description: This is an example string. It also specifies an enum.
+                enum:
+                - option-a
+                - option-b
+                type: string
+    served: true
+    storage: true

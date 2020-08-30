@@ -157,6 +157,10 @@ from kopf.utilities.piggybacking import (
     login_via_client,
 )
 
+from kopf.crd import (
+    CRD
+)
+
 HandlerFatalError = PermanentError  # a backward-compatibility alias
 HandlerRetryError = TemporaryError  # a backward-compatibility alias
 

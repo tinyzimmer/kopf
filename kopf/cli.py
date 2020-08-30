@@ -1,6 +1,10 @@
 import asyncio
 import dataclasses
 import functools
+import importlib
+import logging as log
+import os
+
 from typing import Any, Optional, Callable, List
 
 import click
@@ -135,3 +139,28 @@ def resume(
     )
     loop = asyncio.get_event_loop()
     loop.run_until_complete(ourselves.disappear())
+
+
+@main.command()
+@logging_options
+@click.option('-o', '--outdir', type=str, default=None)
+@click.argument('paths', nargs=-1, required=True)
+def generate_k8s(
+        outdir: Optional[str],
+        paths: List[str],
+) -> None:
+    """ Generate CRD manifests from the given files. """
+    if not outdir:
+        outdir = os.getcwd()
+    for path in paths:
+        spec = importlib.util.spec_from_file_location(path, path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        for name, obj in vars(module).items():
+            if isinstance(obj, type) and callable(getattr(obj, 'generate_k8s', None)):
+                fname = os.path.join(outdir, f'{name.lower()}_crd.yaml')
+                log.info(f'Generating CustomResourceDefinition manifest for {name} to {fname}')
+                manifest = obj.generate_k8s()
+                with open(fname, 'w') as f:
+                    log.debug(f'Writing generated CRD manifest to {fname}')
+                    f.write(manifest)
